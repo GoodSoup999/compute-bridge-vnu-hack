@@ -3,6 +3,8 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
 
 let service = null;
 let serviceUrl = null;
@@ -10,6 +12,16 @@ let appKey = null;
 let mainWindow = null;
 let shuttingDown = false;
 const smoke = process.argv.includes('--smoke');
+// Test packaged builds independently of an already open user application.
+const smokeDirectory = smoke ? fs.mkdtempSync(path.join(os.tmpdir(), 'compute-bridge-smoke-')) : null;
+if (smokeDirectory) {
+  app.setPath('userData', smokeDirectory);
+  app.on('quit', () => {
+    if (path.resolve(smokeDirectory).startsWith(path.resolve(os.tmpdir()) + path.sep)) {
+      try { fs.rmSync(smokeDirectory, { recursive: true, force: true }); } catch {}
+    }
+  });
+}
 
 function isPanel(url) {
   try {
