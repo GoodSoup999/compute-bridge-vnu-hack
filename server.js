@@ -40,8 +40,8 @@ function publicState() {
       online: now - p.lastSeen < 15000, completed: p.completed
     })),
     job: job && {
-      id: job.id, status: job.status, width: job.width, height: job.height,
-      iterations: job.iterations, total: job.tiles.length,
+      id: job.id, status: job.status, mode: job.mode, width: job.width, height: job.height,
+      iterations: job.iterations, samples: job.samples, total: job.tiles.length,
       done: job.tiles.filter(t => t.status === 'done').length,
       startedAt: job.startedAt, finishedAt: job.finishedAt,
       costRon: Number(job.costRon.toFixed(4)), energyKwh: Number(job.energyKwh.toFixed(5)),
@@ -60,20 +60,29 @@ function releaseExpiredTiles() {
   }
 }
 function newJob(input) {
-  const width = Number(input.width), height = Number(input.height), iterations = Number(input.iterations);
-  if (![width, height, iterations].every(Number.isInteger) || width < 200 || width > 3000 || height < 200 || height > 2000 || iterations < 100 || iterations > 10000) {
-    throw new Error('Dimensiuni permise: 200–3000 × 200–2000; iterații: 100–10000');
+  const mode = String(input.mode || 'fractal');
+  if (!['fractal', 'raytrace'].includes(mode)) throw new Error('Tip de lucrare necunoscut');
+  const width = Number(input.width), height = Number(input.height);
+  const iterations = mode === 'fractal' ? Number(input.iterations) : null;
+  const samples = mode === 'raytrace' ? Number(input.samples) : null;
+  const maxWidth = mode === 'raytrace' ? 1600 : 3000;
+  const maxHeight = mode === 'raytrace' ? 1000 : 2000;
+  if (![width, height].every(Number.isInteger) || width < 200 || width > maxWidth || height < 200 || height > maxHeight ||
+      (mode === 'fractal' && (!Number.isInteger(iterations) || iterations < 100 || iterations > 10000)) ||
+      (mode === 'raytrace' && (!Number.isInteger(samples) || samples < 1 || samples > 1024))) {
+    throw new Error(mode === 'raytrace' ? 'Ray tracing: max. 1600 × 1000, 1–1024 mostre/pixel' : 'Fractal: max. 3000 × 2000, 100–10000 iterații');
   }
   const online = [...providers.values()].filter(p => Date.now() - p.lastSeen < 15000);
   const tiles = [];
-  for (let y = 0; y < height; y += 32) {
+  const tileRows = mode === 'raytrace' ? 16 : 32;
+  for (let y = 0; y < height; y += tileRows) {
     tiles.push({
-      id: crypto.randomUUID(), y, rows: Math.min(32, height - y), status: 'pending',
+      id: crypto.randomUUID(), y, rows: Math.min(tileRows, height - y), status: 'pending',
       ownerId: online.length ? online[tiles.length % online.length].id : null
     });
   }
   return {
-    id: crypto.randomUUID(), status: 'running', width, height, iterations, tiles,
+    id: crypto.randomUUID(), status: 'running', mode, width, height, iterations, samples, tiles,
     pixels: Buffer.alloc(width * height * 3), startedAt: Date.now(), finishedAt: null,
     costRon: 0, energyKwh: 0, contributions: {}
   };
@@ -93,6 +102,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.url === '/api/register' && req.method === 'POST') {
       const body = await readJson(req);
+      if (body.protocolVersion !== 2) return json(res, 426, { error: 'Actualizează provider.js pe acest PC la versiunea nouă' });
       const slots = Math.max(1, Math.min(12, Number(body.slots) || 1));
       const id = crypto.randomUUID();
       providers.set(id, {
@@ -127,8 +137,8 @@ const server = http.createServer(async (req, res) => {
       tile.providerId = provider.id;
       tile.assignedAt = Date.now();
       return json(res, 200, { task: {
-        jobId: job.id, taskId: tile.id, width: job.width, height: job.height,
-        y: tile.y, rows: tile.rows, iterations: job.iterations
+        jobId: job.id, taskId: tile.id, mode: job.mode, width: job.width, height: job.height,
+        y: tile.y, rows: tile.rows, iterations: job.iterations, samples: job.samples
       } });
     }
 

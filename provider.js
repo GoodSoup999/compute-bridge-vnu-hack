@@ -10,6 +10,7 @@ const server = String(arg('server', 'http://localhost:3000')).replace(/\/$/, '')
 const token = String(arg('token', process.env.BRIDGE_TOKEN || ''));
 const slots = Math.max(1, Math.min(12, Number(arg('slots', 4)) || 4));
 const info = {
+  protocolVersion: 2,
   name: arg('name', os.hostname()),
   cpu: arg('cpu', os.cpus()[0]?.model || 'CPU'),
   ramGb: Number(arg('ram', Math.round(os.totalmem() / 1073741824))),

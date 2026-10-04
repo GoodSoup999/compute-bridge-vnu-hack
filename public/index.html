@@ -9,7 +9,7 @@
     *{box-sizing:border-box}body{max-width:1050px;margin:0 auto;padding:28px}h1{margin-bottom:4px}p{color:#aebbd0}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:20px 0}
     .card{background:#172238;border:1px solid #30415e;border-radius:12px;padding:18px}
-    input,button{font:inherit;border-radius:8px;padding:9px 11px}input{width:100%;color:#fff;background:#0e182b;border:1px solid #40516d;margin:4px 0 12px}
+    input,select,button{font:inherit;border-radius:8px;padding:9px 11px}input,select{width:100%;color:#fff;background:#0e182b;border:1px solid #40516d;margin:4px 0 12px}
     button{border:0;background:#57a9ff;color:#081321;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:default}
     label{font-size:14px;color:#c6d3e5}.muted{color:#9aabc3}.error{color:#ff9e9e}.ok{color:#91e6b1}
     img{max-width:100%;border-radius:10px;border:1px solid #30415e}progress{width:100%;height:18px}
@@ -30,11 +30,17 @@
     </section>
     <section class="card">
       <h2>2. Trimite lucrarea</h2>
-      <p>Demo: randarea paralelă a unei imagini fractale pe CPU. GPU-urile sunt afișate ca inventar.</p>
+      <p>Randare împărțită între PC-uri pe CPU. GPU-urile sunt afișate ca inventar.</p>
       <form id="form">
-        <label>Lățime<input id="width" type="number" min="200" max="3000" value="2400"></label>
-        <label>Înălțime<input id="height" type="number" min="200" max="2000" value="1600"></label>
-        <label>Complexitate<input id="iterations" type="number" min="100" max="10000" value="5000"></label>
+        <label>Tipul lucrării
+          <select id="mode">
+            <option value="raytrace">Randare 3D cu ray tracing</option>
+            <option value="fractal">Imagine fractală</option>
+          </select>
+        </label>
+        <label>Lățime<input id="width" type="number" min="200" max="1600" value="1600"></label>
+        <label>Înălțime<input id="height" type="number" min="200" max="1000" value="900"></label>
+        <label id="qualityLabel">Mostre per pixel<input id="quality" type="number" min="1" max="1024" value="512"></label>
         <button id="submit" type="submit">Pornește lucrarea</button>
       </form>
     </section>
@@ -49,6 +55,17 @@
     let token = sessionStorage.getItem('bridgeToken') || '';
     $('token').value = token;
     $('save').onclick = () => { token = $('token').value.trim(); sessionStorage.setItem('bridgeToken', token); refresh(); };
+    $('mode').onchange = () => {
+      const ray = $('mode').value === 'raytrace';
+      $('width').max = ray ? 1600 : 3000;
+      $('height').max = ray ? 1000 : 2000;
+      $('width').value = ray ? 1600 : 2400;
+      $('height').value = ray ? 900 : 1600;
+      $('quality').min = ray ? 1 : 100;
+      $('quality').max = ray ? 1024 : 10000;
+      $('quality').value = ray ? 512 : 5000;
+      $('qualityLabel').firstChild.textContent = ray ? 'Mostre per pixel' : 'Iterații';
+    };
     async function api(url, options = {}) {
       const response = await fetch(url, { ...options, headers: { 'x-bridge-token': token, 'content-type': 'application/json' } });
       if (!response.ok) throw new Error((await response.json()).error || 'Eroare de rețea');
@@ -58,8 +75,12 @@
       event.preventDefault();
       $('submit').disabled = true;
       try {
+        const mode = $('mode').value;
+        const quality = Number($('quality').value);
         await api('/api/job', { method: 'POST', body: JSON.stringify({
-          width: Number($('width').value), height: Number($('height').value), iterations: Number($('iterations').value)
+          mode, width: Number($('width').value), height: Number($('height').value),
+          iterations: mode === 'fractal' ? quality : undefined,
+          samples: mode === 'raytrace' ? quality : undefined
         }) });
         $('message').textContent = 'Lucrarea a pornit.';
         await refresh();
@@ -89,7 +110,7 @@
         const seconds = Math.round(((j.finishedAt || Date.now()) - j.startedAt) / 1000);
         $('job').replaceChildren();
         const summary = document.createElement('p');
-        summary.textContent = `${j.status === 'done' ? 'Finalizat' : 'În curs'}: ${j.done}/${j.total} bucăți, ${seconds} secunde. Cost simulat: ${j.costRon.toFixed(4)} RON; energie estimată: ${j.energyKwh.toFixed(5)} kWh.`;
+        summary.textContent = `${j.mode === 'raytrace' ? 'Randare 3D' : 'Fractal'} — ${j.status === 'done' ? 'finalizat' : 'în curs'}: ${j.done}/${j.total} bucăți, ${seconds} secunde. Cost simulat: ${j.costRon.toFixed(4)} RON; energie estimată: ${j.energyKwh.toFixed(5)} kWh.`;
         $('job').append(summary);
         const bar = document.createElement('progress'); bar.value = j.done; bar.max = j.total; $('job').append(bar);
         const detail = document.createElement('p');
@@ -98,7 +119,7 @@
         if (j.imageUrl && $('image').dataset.id !== j.id) {
           const blob = await (await api(j.imageUrl)).blob();
           $('image').replaceChildren();
-          const img = document.createElement('img'); img.src = URL.createObjectURL(blob); img.alt = 'Imagine fractală randată de PC-urile furnizoare';
+          const img = document.createElement('img'); img.src = URL.createObjectURL(blob); img.alt = 'Imagine randată de PC-urile furnizoare';
           $('image').append(img); $('image').dataset.id = j.id;
         }
       } catch (error) { $('message').textContent = error.message; $('message').className = 'error'; }

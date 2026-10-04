@@ -1,6 +1,6 @@
 # Compute Bridge — prototip VNU Hack
 
-Două PC-uri furnizoare calculează în paralel bucăți dintr-o imagine fractală. Al treilea PC rulează coordonatorul și interfața web. Acesta este un demo de **calcul distribuit pe CPU**. GPU-urile apar în inventar, dar sarcina demonstrativă nu le folosește; VRAM-ul lor nu este combinat.
+Două PC-uri furnizoare calculează în paralel bucăți dintr-o imagine. Al treilea PC rulează coordonatorul și interfața web. Puteți alege între o imagine fractală și o **randare 3D prin ray tracing**, cu iluminare, umbre și reflexii. Ambele sunt demo-uri de **calcul distribuit pe CPU**. GPU-urile apar în inventar, dar aceste sarcini nu le folosesc; VRAM-ul lor nu este combinat.
 
 ## Ce trebuie instalat
 
@@ -55,17 +55,19 @@ Valorile `--slots`, `--watts` și `--rate` sunt configurabile. `slots` este num�
 ## Demo pentru juriu
 
 1. Arătați cele două PC-uri conectate și resursele lor în interfață.
-2. Porniți o lucrare de 2400 × 1600, complexitate 5000.
+2. Selectați „Randare 3D cu ray tracing” și porniți o lucrare de 1600 × 900, 512 mostre per pixel. Pentru o demonstrație mai scurtă, reduceți la 128 mostre per pixel.
 3. Arătați progresul și câte bucăți a procesat fiecare PC.
 4. La final, arătați imaginea, timpul, costul simulat și energia estimată.
 5. Pentru comparație, opriți un furnizor, așteptați să apară offline (aproximativ 15 secunde), apoi porniți aceeași lucrare și comparați timpul. Faceți această comparație înainte de prezentare și notați rezultatele reale.
 
 Estimarea costului este `suma(timp CPU pe slot × preț orar al PC-ului / număr de sloturi)`. Estimarea energiei folosește aceeași alocare de timp și puterea introdusă manual. Un produs real ar avea nevoie de măsurare de consum, plăți, izolare a sarcinilor, verificarea rezultatelor și protecția datelor.
 
+**După actualizarea proiectului:** opriți `server.js` și ambele procese `provider.js`, faceți `git pull` pe toate cele trei PC-uri (sau descărcați din nou arhiva ZIP), apoi porniți serverul și furnizorii cu noul cod de acces. Versiunile vechi ale `provider.js` nu pot executa randarea 3D și vor primi un mesaj de actualizare.
+
 ## Limitele prototipului
 
 - Acceptă o singură lucrare activă. Rezultatul precedent rămâne vizibil până pornește o lucrare nouă.
-- Rulează numai lucrarea fractală inclusă, nu execută cod arbitrar trimis de utilizatori.
+- Rulează numai cele două lucrări incluse, nu execută cod arbitrar trimis de utilizatori.
 - Nu are plăți reale și nu oferă desktop la distanță.
 - Codul de acces este potrivit doar pentru un demo pe o rețea locală de încredere. Nu publicați portul pe internet.
 - Dacă un cod de acces apare într-o captură de ecran distribuită, opriți și reporniți `server.js` pentru a genera un cod nou; actualizați codul în browser și pe ambele PC-uri furnizoare.
