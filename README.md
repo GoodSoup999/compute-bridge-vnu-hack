@@ -8,6 +8,27 @@ Fiecare PC calculează separat: procesoarele și VRAM-ul plăcilor video nu se a
 
 Site și download: **https://node-compute.vercel.app**
 
+## Aplicație desktop Windows (fereastră proprie)
+
+Codul existent poate rula într-o fereastră desktop Electron, fără tab de browser. Coordonatorul, conectorul, randarea și interfața sunt aceleași ca în versiunea 0.2.0. Panoul de lucru se deschide într-o a doua fereastră a aplicației.
+
+Din acest repository, pe Windows x64, cu Node.js și npm instalate:
+
+```powershell
+npm ci
+npm run desktop
+```
+
+Pentru pachetul portabil:
+
+```powershell
+npm run desktop:build
+```
+
+Executabilul rezultat este `dist\desktop\Compute Bridge-win32-x64\ComputeBridge.exe`. Copiază **întregul folder** `Compute Bridge-win32-x64` pe fiecare PC Windows; executabilul are nevoie de subfolderul `resources` și de celelalte fișiere din pachet. Pe PC-urile țintă nu trebuie instalate Node.js sau un browser. Pentru randare GPU trebuie în continuare instalat Blender și trebuie permis accesul în rețeaua privată când întreabă Windows Firewall. Pachetul nu este semnat digital.
+
+Comanda `npm run desktop:smoke` verifică pornirea interfeței desktop fără a lăsa o fereastră deschisă. Pachetele de pe pagina de download descrise mai jos sunt versiunea anterioară, care se deschide în browser; acest pachet desktop se construiește din repository.
+
 ## Descarcă și pornește
 
 Pe [pagina de download](https://node-compute.vercel.app/download) sunt două pachete, ambele pentru **Windows 10 și 11, x64**:

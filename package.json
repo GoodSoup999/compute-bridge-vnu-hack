@@ -2,13 +2,23 @@
   "name": "hackerville-compute-bridge",
   "version": "0.2.0",
   "private": true,
+  "main": "desktop/main.js",
   "scripts": {
     "start": "node server.js",
     "app": "node app.js",
+    "desktop": "electron .",
+    "desktop:smoke": "electron . --smoke",
+    "desktop:build": "node scripts/build-desktop.js",
     "build": "node scripts/build.js",
     "test": "node test/scheduling.js && node test/error-report.js && node test/connector.js",
     "provider": "node provider.js",
     "local": "node scripts/local.js"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "44.5.1"
+  }
 }
