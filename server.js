@@ -1,11 +1,13 @@
 const http = require('node:http');
-const fs = require('node:fs');
-const path = require('node:path');
+const os = require('node:os');
 const crypto = require('node:crypto');
 const { encodeRgbPng } = require('./lib/png');
+const { readAsset, serveShared } = require('./lib/assets');
+const { startBeacon, lanAddresses } = require('./lib/discovery');
 
-const PORT = Number(process.env.PORT || 3000);
-const TOKEN = process.env.BRIDGE_TOKEN || crypto.randomBytes(12).toString('hex');
+let PORT = Number(process.env.PORT || 3000);
+let TOKEN = process.env.BRIDGE_TOKEN || crypto.randomBytes(12).toString('hex');
+let NAME = os.hostname();
 const providers = new Map();
 let job = null;
 
@@ -34,6 +36,8 @@ function requireToken(req, res) {
 function publicState() {
   const now = Date.now();
   return {
+    // What the coordinator page needs to invite other PCs. The access code is never part of it.
+    coordinator: { name: NAME, port: PORT, addresses: lanAddresses().map(a => a.address) },
     providers: [...providers.values()].map(p => ({
       id: p.id, name: p.name, cpu: p.cpu, ramGb: p.ramGb, gpu: p.gpu,
       vramGb: p.vramGb, slots: p.slots, gpuRender: p.gpuRender,
@@ -130,16 +134,11 @@ function newJob(input) {
 const server = http.createServer(async (req, res) => {
   try {
     if ((req.url === '/' || req.url === '/node') && req.method === 'GET') {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      fs.createReadStream(path.join(__dirname, 'public', req.url === '/' ? 'index.html' : 'node.html')).pipe(res);
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      res.end(readAsset(req.url === '/' ? 'public/index.html' : 'public/node.html'));
       return;
     }
-    const font = req.method === 'GET' && /^\/fonts\/([a-z0-9-]+\.woff2)$/.exec(req.url);
-    if (font && fs.existsSync(path.join(__dirname, 'public', 'fonts', font[1]))) {
-      res.writeHead(200, { 'content-type': 'font/woff2', 'cache-control': 'public, max-age=86400' });
-      fs.createReadStream(path.join(__dirname, 'public', 'fonts', font[1])).pipe(res);
-      return;
-    }
+    if (serveShared(req, res)) return;
     if (!req.url.startsWith('/api/')) return json(res, 404, { error: 'Negăsit' });
     if (!requireToken(req, res)) return;
 
@@ -158,6 +157,18 @@ const server = http.createServer(async (req, res) => {
         lastSeen: Date.now(), completed: 0
       });
       return json(res, 200, { id });
+    }
+
+    if (req.url === '/api/leave' && req.method === 'POST') {
+      const provider = providers.get((await readJson(req)).providerId);
+      if (provider) {
+        provider.lastSeen = 0; // shown offline at once
+        // Tasks it was still working on go straight back to the queue for the other PCs.
+        for (const tile of job?.status === 'running' ? job.tiles : []) {
+          if (tile.status === 'assigned' && tile.providerId === provider.id) { tile.status = 'pending'; tile.providerId = null; }
+        }
+      }
+      return json(res, 200, { ok: true });
     }
 
     if (req.url === '/api/job' && req.method === 'POST') {
@@ -280,8 +291,41 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Compute Bridge: http://localhost:${PORT}`);
-  console.log(`Cod de acces: ${TOKEN}`);
-  console.log('Folosește numai în rețeaua locală de încredere.');
-});
+let stopBeacon = null;
+
+// Starts the coordinator. Used by `node server.js` and by the desktop app (app.js).
+function startServer(options = {}) {
+  PORT = Number(options.port || PORT);
+  TOKEN = options.token || TOKEN;
+  NAME = options.name || NAME;
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(PORT, '0.0.0.0', () => {
+      server.off('error', reject);
+      stopBeacon = startBeacon({ port: PORT, name: NAME });
+      resolve({ port: PORT, token: TOKEN, name: NAME });
+    });
+  });
+}
+
+function stopServer() {
+  stopBeacon?.();
+  stopBeacon = null;
+  providers.clear();
+  job = null;
+  server.closeAllConnections?.();
+  return new Promise(resolve => server.close(() => resolve()));
+}
+
+module.exports = { startServer, stopServer, getState: publicState };
+
+if (require.main === module) {
+  startServer().then(() => {
+    console.log(`Compute Bridge: http://localhost:${PORT}`);
+    console.log(`Cod de acces: ${TOKEN}`);
+    console.log('Folosește numai în rețeaua locală de încredere.');
+  }, error => {
+    console.error(error.code === 'EADDRINUSE' ? `Portul ${PORT} e deja folosit. Pornește cu alt port: PORT=3001 node server.js` : error.message);
+    process.exit(1);
+  });
+}
