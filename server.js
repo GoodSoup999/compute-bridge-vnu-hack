@@ -48,10 +48,32 @@ function publicState() {
       startedAt: job.startedAt, finishedAt: job.finishedAt,
       costRon: Number(job.costRon.toFixed(4)), energyKwh: Number(job.energyKwh.toFixed(5)),
       contributions: job.contributions, error: job.error || null,
+      // Per-task view for the network visualisation: who holds or finished each frame or band.
+      tiles: job.tiles.map(t => ({ status: t.status, provider: t.providerId || null, frame: t.frame, y: t.y, rows: t.rows })),
       imageUrl: job.status === 'done' && job.mode !== 'blender' ? '/api/image' : null,
       frameUrls: job.status === 'done' && job.mode === 'blender' ? job.frames.map((_, i) => `/api/frame/${i}`) : null
     }
   };
+}
+// The image as it is being assembled, scaled down to at most 960 px wide. Re-encoded only when a band arrives.
+function previewPng() {
+  if (job.png) return job.png;
+  const done = job.tiles.filter(t => t.status === 'done').length;
+  if (job.preview?.done === done) return job.preview.png;
+  const scale = Math.min(1, 960 / job.width);
+  const w = Math.max(1, Math.round(job.width * scale)), h = Math.max(1, Math.round(job.height * scale));
+  const out = Buffer.alloc(w * h * 3);
+  for (let y = 0, o = 0; y < h; y++) {
+    const row = Math.min(job.height - 1, Math.floor(y / scale)) * job.width;
+    for (let x = 0; x < w; x++, o += 3) {
+      const i = (row + Math.min(job.width - 1, Math.floor(x / scale))) * 3;
+      out[o] = job.pixels[i];
+      out[o + 1] = job.pixels[i + 1];
+      out[o + 2] = job.pixels[i + 2];
+    }
+  }
+  job.preview = { done, png: encodeRgbPng(w, h, out) };
+  return job.preview.png;
 }
 function releaseExpiredTiles() {
   if (!job || job.status !== 'running') return;
@@ -107,9 +129,15 @@ function newJob(input) {
 
 const server = http.createServer(async (req, res) => {
   try {
-    if (req.url === '/' && req.method === 'GET') {
+    if ((req.url === '/' || req.url === '/node') && req.method === 'GET') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      fs.createReadStream(path.join(__dirname, 'public', 'index.html')).pipe(res);
+      fs.createReadStream(path.join(__dirname, 'public', req.url === '/' ? 'index.html' : 'node.html')).pipe(res);
+      return;
+    }
+    const font = req.method === 'GET' && /^\/fonts\/([a-z0-9-]+\.woff2)$/.exec(req.url);
+    if (font && fs.existsSync(path.join(__dirname, 'public', 'fonts', font[1]))) {
+      res.writeHead(200, { 'content-type': 'font/woff2', 'cache-control': 'public, max-age=86400' });
+      fs.createReadStream(path.join(__dirname, 'public', 'fonts', font[1])).pipe(res);
       return;
     }
     if (!req.url.startsWith('/api/')) return json(res, 404, { error: 'Negăsit' });
@@ -235,6 +263,11 @@ const server = http.createServer(async (req, res) => {
       }
       res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store' });
       return res.end(job.frames[index]);
+    }
+
+    if (req.url === '/api/preview' && req.method === 'GET' && job && job.mode !== 'blender' && (job.png || job.pixels)) {
+      res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store' });
+      return res.end(previewPng());
     }
 
     if (req.url === '/api/image' && req.method === 'GET' && job?.png) {
