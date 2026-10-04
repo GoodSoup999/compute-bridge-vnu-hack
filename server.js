@@ -18,7 +18,7 @@ function readJson(req) {
     let data = '';
     req.on('data', part => {
       data += part;
-      if (data.length > 5000000) req.destroy();
+      if (data.length > 11000000) req.destroy();
     });
     req.on('end', () => {
       try { resolve(JSON.parse(data || '{}')); } catch { reject(new Error('JSON invalid')); }
@@ -74,9 +74,10 @@ function newJob(input) {
   if (![width, height].every(Number.isInteger) || width < 200 || width > maxWidth || height < 200 || height > maxHeight ||
       (mode === 'fractal' && (!Number.isInteger(iterations) || iterations < 100 || iterations > 10000)) ||
       (mode === 'raytrace' && (!Number.isInteger(samples) || samples < 1 || samples > 1024)) ||
-      (mode === 'blender' && (!Number.isInteger(samples) || samples < 8 || samples > 256 ||
-        !Number.isInteger(frameCount) || frameCount < 2 || frameCount > 16))) {
-    throw new Error(mode === 'blender' ? 'Blender GPU: max. 1600 × 1000, 2–16 cadre, 8–256 mostre' :
+      (mode === 'blender' && (!Number.isInteger(samples) || samples < 8 || samples > 512 ||
+        !Number.isInteger(frameCount) || frameCount < 2 || frameCount > 96 ||
+        width * height * frameCount > 80000000))) {
+    throw new Error(mode === 'blender' ? 'Blender GPU: max. 1600 × 1000, 2–96 cadre, 8–512 mostre și 80 milioane pixeli în total' :
       mode === 'raytrace' ? 'Ray tracing: max. 1600 × 1000, 1–1024 mostre/pixel' :
       'Fractal: max. 3000 × 2000, 100–10000 iterații');
   }
@@ -138,6 +139,13 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { id: job.id });
     }
 
+    if (req.url === '/api/cancel' && req.method === 'POST') {
+      if (!job || job.status !== 'running') return json(res, 409, { error: 'Nicio lucrare în curs' });
+      job.status = 'cancelled';
+      job.finishedAt = Date.now();
+      return json(res, 200, { ok: true });
+    }
+
     if (req.url.startsWith('/api/task?') && req.method === 'GET') {
       const url = new URL(req.url, 'http://localhost');
       const provider = providers.get(url.searchParams.get('provider'));
@@ -168,12 +176,14 @@ const server = http.createServer(async (req, res) => {
       const body = await readJson(req);
       const provider = providers.get(body.providerId);
       const tile = job?.tiles.find(t => t.id === body.taskId);
-      if (!provider || !tile || body.jobId !== job.id || tile.status !== 'assigned' || tile.providerId !== provider.id) {
+      if (!provider || !tile || body.jobId !== job.id || job.status !== 'running' || tile.status !== 'assigned' || tile.providerId !== provider.id) {
         return json(res, 409, { error: 'Rezultat expirat sau nod necunoscut' });
       }
       if (job.mode === 'blender') {
         const image = Buffer.from(String(body.image || ''), 'base64');
-        if (image.length < 100 || image.length > 3500000 || !image.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) {
+        if (image.length < 100 || image.length > 8000000 ||
+            !image.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) ||
+            image.readUInt32BE(16) !== job.width || image.readUInt32BE(20) !== job.height) {
           return json(res, 400, { error: 'Imagine GPU invalidă' });
         }
         job.frames[tile.frame] = image;

@@ -114,7 +114,7 @@ async function renderGpuFrame(task) {
     });
     if (!log.includes('COMPUTE_BRIDGE_GPU=')) throw new Error('Blender nu a confirmat folosirea GPU-ului');
     const image = fs.readFileSync(output);
-    if (image.length > 3500000) throw new Error('Imaginea generată este prea mare');
+    if (image.length > 8000000) throw new Error('Imaginea generată este prea mare');
     return { image: image.toString('base64'), durationMs: Date.now() - started, gpuBackend: log.match(/COMPUTE_BRIDGE_GPU=([^\r\n]+)/)?.[1] || 'GPU' };
   } finally {
     if (fs.existsSync(output)) fs.unlinkSync(output);
