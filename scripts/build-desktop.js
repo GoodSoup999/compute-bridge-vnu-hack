@@ -24,7 +24,7 @@ async function main() {
       fs.copyFileSync(path.join(root, file), path.join(stage, file));
     }
     for (const dir of ['lib', 'public', 'desktop']) {
-      fs.cpSync(path.join(root, dir), path.join(stage, dir), { recursive: true });
+      fs.cpSync(path.join(root, dir), path.join(stage, dir), { recursive: true, filter: source => !source.split(path.sep).includes('__pycache__') && !source.endsWith('.pyc') });
     }
     if (process.env.CB_HUB_URL) fs.writeFileSync(path.join(stage, 'desktop/config.json'), JSON.stringify({ hubUrl: require('../lib/remote-agent').hubUrl(process.env.CB_HUB_URL) }));
     fs.writeFileSync(path.join(stage, 'package.json'), JSON.stringify({
