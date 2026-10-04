@@ -10,6 +10,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bridge-desktop-flow-'));
+  const clockFile = path.join(dir, 'skew-clock.cjs');
+  fs.writeFileSync(clockFile, 'const realNow = Date.now; Date.now = () => realNow() + Number(process.env.TEST_CLOCK_OFFSET_MS || 0);');
   const app = createHubServer();
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   let failRegistration = false;
@@ -30,8 +32,8 @@ async function main() {
   const children = [];
   const suffix = process.env.TEST_EMAIL_SUFFIX || Date.now();
   async function bridge(name) {
-    const child = spawn(process.execPath, [path.resolve(__dirname, '../hub-app.js'), '--port', '0'], {
-      windowsHide: true, env: { ...process.env, CB_HUB_URL: hub, CB_DATA_DIR: path.join(dir, name) }, stdio: ['ignore', 'pipe', 'pipe']
+    const child = spawn(process.execPath, ['--require', clockFile, path.resolve(__dirname, '../hub-app.js'), '--port', '0'], {
+      windowsHide: true, env: { ...process.env, TEST_CLOCK_OFFSET_MS: name === 'buyer' ? '-172800000' : '172800000', CB_HUB_URL: hub, CB_DATA_DIR: path.join(dir, name) }, stdio: ['ignore', 'pipe', 'pipe']
     });
     children.push(child); let logs = '';
     child.stdout.on('data', b => logs += b); child.stderr.on('data', b => logs += b);
@@ -77,7 +79,7 @@ async function main() {
     assert.equal(state.state.user.credits, 100 - job.spent);
     assert.equal(s.state.user.credits, 100 + job.spent); assert.equal(o.state.user.credits, 100);
     assert.equal(state.agent, null, 'remote job does not start the buyer CPU');
-    console.log('PASS desktop flow: automatic hub, 100 starter credits, two real offers visible, selected PC renders, matching debit/income, other PC cannot steal work');
+    console.log('PASS desktop flow: clocks skewed by +/-48 hours, automatic hub, 100 starter credits, two real offers visible, selected PC renders, matching debit/income, other PC cannot steal work');
 
     await seller.call('stop', { force: false });
     state = await buyer.call('state'); assert.ok(!state.state.devices.some(d => d.id === offered.id));

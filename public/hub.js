@@ -24,7 +24,7 @@ function tab(name) {
   document.querySelectorAll('[data-tab]').forEach(t => t.classList.toggle('selected',t.dataset.tab === name));
 }
 function deviceCard(d, own = false) {
-  const remaining = Math.max(0, Math.ceil((d.until - Date.now()) / 60000));
+  const remaining = Math.max(0, Math.ceil((d.until - (current?.serverTime || Date.now())) / 60000));
   return `<article class="card"><div class="jobhead"><strong>${esc(d.name)}</strong><span class="badge">${d.online ? (d.busy ? 'Lucrează':'Disponibil'):'Oprit'}</span></div><p class="sub">${esc(d.owner)} · ${d.slots} fire CPU · ${d.ramGb} GB RAM<br>${esc(d.gpuRender ? d.gpu : 'GPU neofertat')} ${d.gpuRender ? '· '+d.vramGb+' GB VRAM':''}</p><p class="sub">${money(d.price)} credite / unitate · ${d.completed} sarcini terminate<br>${d.online ? 'Disponibil încă '+remaining+' minute':'Oferta nu este activă'}</p>${own ? `<p class="positive">${money(d.earned)} credite câștigate prin calcul</p>`:`<button class="primary" data-use="${esc(d.id)}">Folosește acest PC</button>`}</article>`;
 }
 function providers(devices) {

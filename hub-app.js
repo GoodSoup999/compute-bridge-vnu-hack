@@ -25,7 +25,7 @@ async function checkHub() {
     hubStatus = { connected: true, message: 'Conectat la server' };
   } catch (error) { hubStatus = { connected: false, message: error.message.includes('0.5') ? error.message : 'Serverul nu răspunde. Aplicația reîncearcă automat.' }; }
 }
-let account = null; let device = null; let config = null; let agent = null; let busy = false;
+let account = null; let device = null; let config = null; let agent = null; let busy = false; let availabilityDeadline = 0;
 const hardware = systemInfo();
 const call = (endpoint, method = 'GET', body) => { if (!account) throw new Error('Autentifică-te'); return request(server, account.token, '/v1/' + endpoint, method, body); };
 function json(res, status, value) { res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(value)); }
@@ -35,17 +35,23 @@ async function configure(input = {}) {
   const hw = await hardware; const gpu = hw.gpus.find(g => g.nvidia);
   const defaults = { name: hw.hostname, slots: Math.max(1, Math.min(2, hw.threads - 1)), cpuPercent: 50, gpuRender: false, ramGb: Math.max(1, Math.min(4, hw.ramGb - 2)), vramGb: 0, until: Date.now() + 3600000, price: 1 };
   const next = { ...defaults, ...input, cpu: hw.cpu, gpu: gpu?.name || '' };
+  const hours = Number(input.hours ?? 1);
+  if (!Number.isFinite(hours) || hours < 1 || hours > 24) throw new Error('Alege un interval între 1 și 24 de ore');
   if (!Number.isInteger(Number(next.slots)) || next.slots < 0 || next.slots > Math.min(12, hw.threads)) throw new Error('Număr de fire CPU invalid');
   if (next.ramGb > Math.max(1, hw.ramGb - 1)) throw new Error('Lasă minimum 1 GB RAM pentru sistem');
   if (next.gpuRender && (hw.gpuRenderReason || next.vramGb > gpu.vramGb)) throw new Error(hw.gpuRenderReason || 'VRAM peste capacitatea GPU-ului');
   if (next.market && Number(next.slots) === 0 && !next.gpuRender) throw new Error('Oferă cel puțin un fir CPU sau activează GPU-ul');
   settings.identities ||= {}; settings.identities[account.id] ||= crypto.randomBytes(32).toString('hex'); save();
+  const serverState = await call('state');
+  if (!Number.isFinite(serverState.serverTimeMs)) throw new Error('Nu pot verifica ora serverului. Reîncearcă.');
+  next.until = serverState.serverTimeMs + hours * 3600000;
   device = await call('devices', 'POST', { ...next, clientKey: settings.identities[account.id] }); config = next;
+  availabilityDeadline = performance.now() + hours * 3600000;
   return device.id;
 }
 async function startAgent() {
   if (agent?.running) return;
-  if (!device || config.until <= Date.now()) await configure({ ...config, market: false, until: Date.now() + 3600000 });
+  if (!device || performance.now() >= availabilityDeadline) await configure({ ...config, market: false, hours: 1 });
   agent = new RemoteAgent({ server, token: device.token, config, blenderPath: (await hardware).blender }); await agent.start();
 }
 async function quit() { await agent?.stop(true); if (account) try { await call('auth/logout', 'POST', {}); } catch {} setTimeout(() => process.exit(0), 50); }
@@ -68,7 +74,7 @@ const ui = http.createServer(async (req, res) => {
           await agent?.stop(true).catch(() => {}); account = device = config = agent = null;
         }
       }
-      return json(res, 200, { hub: hubStatus, state, hardware: await hardware, deviceId: device?.id, config, agent: agent?.snapshot() || null });
+      return json(res, 200, { hub: hubStatus, state, serverTime: state?.serverTimeMs, hardware: await hardware, deviceId: device?.id, config, agent: agent?.snapshot() || null });
     }
     if (req.url.startsWith('/local/image?') && req.method === 'GET') {
       if (!account) throw new Error('Autentifică-te'); const u = new URL(req.url, 'http://local'); const jid = u.searchParams.get('job'); const frame = Number(u.searchParams.get('frame') || 0);
@@ -93,14 +99,14 @@ const ui = http.createServer(async (req, res) => {
         finally { account = device = config = agent = null; }
       }
       else if (req.url === '/local/device') {
-        await configure({ ...b, market: true, commitment: 'reserved', until: Date.now() + Number(b.hours) * 3600000 });
+        await configure({ ...b, market: true, commitment: 'reserved' });
         await startAgent();
       }
       else if (req.url === '/local/stop') { if (b.force) await agent?.stop(true); else await agent?.drain(); }
       else if (req.url === '/local/job') {
         if (!account) throw new Error('Autentifică-te');
         if (b.execution === 'hybrid') {
-          if (!agent?.running) await configure({ ...config, market: false, until: Date.now() + 3600000 });
+          if (!agent?.running) await configure({ ...config, market: false, hours: 1 });
           await startAgent();
         } else if (!device) await configure({ market: false, slots: 0, ramGb: 1, vramGb: 0, gpuRender: false });
         await call('jobs', 'POST', { ...b, requestDeviceId: device.id });
