@@ -1,0 +1,1540 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Compute Bridge · NODE</title>
+  <meta name="theme-color" content="#1e1626">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cg fill='none' stroke='%23f1e9ee' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 21.5V8.4'/%3E%3Cpath d='M7.2 7.6 18.6 19'/%3E%3Cpath d='M21 17.4V4.5'/%3E%3Ccircle cx='5' cy='5.6' r='2.7'/%3E%3C/g%3E%3Ccircle cx='21' cy='20.6' r='3' fill='%23f2b49b'/%3E%3C/svg%3E">
+  <style>
+    /* Fonts: the files NODE uses (@fontsource-variable), served by server.js so the demo works offline. */
+    @font-face { font-family: "Schibsted Grotesk Variable"; font-style: normal; font-display: swap; font-weight: 400 900;
+      src: url(/fonts/schibsted-grotesk-latin-ext-wght-normal.woff2) format("woff2-variations");
+      unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+    @font-face { font-family: "Schibsted Grotesk Variable"; font-style: normal; font-display: swap; font-weight: 400 900;
+      src: url(/fonts/schibsted-grotesk-latin-wght-normal.woff2) format("woff2-variations");
+      unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+    @font-face { font-family: "Newsreader Variable"; font-style: normal; font-display: swap; font-weight: 200 800;
+      src: url(/fonts/newsreader-latin-ext-opsz-normal.woff2) format("woff2-variations");
+      unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+    @font-face { font-family: "Newsreader Variable"; font-style: normal; font-display: swap; font-weight: 200 800;
+      src: url(/fonts/newsreader-latin-opsz-normal.woff2) format("woff2-variations");
+      unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+    @font-face { font-family: "JetBrains Mono Variable"; font-style: normal; font-display: swap; font-weight: 100 800;
+      src: url(/fonts/jetbrains-mono-latin-ext-wght-normal.woff2) format("woff2-variations");
+      unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+    @font-face { font-family: "JetBrains Mono Variable"; font-style: normal; font-display: swap; font-weight: 100 800;
+      src: url(/fonts/jetbrains-mono-latin-wght-normal.woff2) format("woff2-variations");
+      unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+
+    /* NODE design tokens (packages/ui/src/tokens.css in the NODE repo).
+       One night, from dusk to dawn: plum surfaces, pale lilac type and one peach accent. */
+    :root {
+      --n-bg: #1e1626;
+      --n-surface: #261d31;
+      --n-surface-2: #2d2339;
+      --n-surface-3: #362a44;
+      --n-border: #3d3049;
+      --n-border-soft: #30253b;
+      --n-border-strong: #54436a;
+      --n-code-bg: #170f1e;
+      --n-text: #f1e9ee;
+      --n-text-2: #c8b9cc;
+      --n-text-3: #9c8ba6;
+      --n-accent: #f2b49b;
+      --n-accent-ink: #1e1626;
+      --n-accent-soft: rgb(242 180 155 / 0.12);
+      --n-accent-line: rgb(242 180 155 / 0.4);
+      --n-warn: #eac97e;
+      --n-warn-soft: rgb(234 201 126 / 0.12);
+      --n-warn-line: rgb(234 201 126 / 0.36);
+      --n-danger: #ff8f8f;
+      --n-danger-soft: rgb(255 143 143 / 0.12);
+      --n-danger-line: rgb(255 143 143 / 0.4);
+      --n-font: "Schibsted Grotesk Variable", "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --n-serif: "Newsreader Variable", "Newsreader", "Iowan Old Style", Georgia, serif;
+      --n-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+      --n-t-12: 0.75rem;
+      --n-t-13: 0.8125rem;
+      --n-t-14: 0.875rem;
+      --n-t-16: 1rem;
+      --n-t-20: 1.25rem;
+      --n-r-6: 6px;
+      --n-r-8: 8px;
+      --n-line: 1px solid var(--n-border);
+      --n-gutter: 16px;
+      --n-max: 1280px;
+      --n-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+      --n-fast: 120ms;
+      --n-mid: 220ms;
+      /* One colour per provider PC, all from the same dusk-to-dawn family. */
+      --pc-1: #f2b49b;
+      --pc-2: #c4a7e7;
+      --pc-3: #e8a0b4;
+      --pc-4: #d9c39b;
+      --pc-5: #a9b8f0;
+      color-scheme: dark;
+    }
+    @media (min-width: 720px) { :root { --n-gutter: 32px; } }
+    @media (min-width: 1100px) { :root { --n-gutter: 48px; } }
+    @media (prefers-reduced-motion: reduce) { :root { --n-fast: 0ms; --n-mid: 0ms; } }
+
+    /* NODE base and components (subset of packages/ui/src/ui.css). */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body {
+      margin: 0; background: var(--n-bg); color: var(--n-text); font-family: var(--n-font);
+      font-size: var(--n-t-16); line-height: 1.55; font-feature-settings: "ss01", "cv11";
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow-x: hidden;
+    }
+    h1, h2, h3 { margin: 0; font-weight: 600; line-height: 1.12; letter-spacing: -0.02em; text-wrap: balance; }
+    p { margin: 0; text-wrap: pretty; }
+    ol, ul { margin: 0; padding: 0; list-style: none; }
+    a { color: inherit; }
+    img, svg { display: block; max-width: 100%; }
+    button, input { font: inherit; color: inherit; }
+    code { font-family: var(--n-mono); font-size: 0.9em; }
+    [hidden] { display: none !important; }
+    .n-num { font-family: var(--n-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    :focus-visible { outline: 2px solid var(--n-accent); outline-offset: 2px; border-radius: 4px; }
+    ::selection { background: var(--n-accent); color: var(--n-accent-ink); }
+    .n-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    .n-skip:focus { position: fixed; top: 8px; left: 8px; z-index: 100; width: auto; height: auto; clip: auto; padding: 8px 12px; background: var(--n-accent); color: var(--n-accent-ink); border-radius: var(--n-r-6); }
+    .n-wrap { width: 100%; max-width: calc(var(--n-max) + 2 * var(--n-gutter)); margin-inline: auto; padding-inline: var(--n-gutter); }
+    .n-eyebrow { font-size: var(--n-t-13); font-weight: 550; color: var(--n-text-3); }
+    .n-meta { color: var(--n-text-3); font-size: var(--n-t-13); }
+
+    .n-logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--n-text); font-weight: 700; font-size: var(--n-t-16); letter-spacing: 0.14em; }
+    .n-logo svg { width: 24px; height: 24px; flex: none; }
+
+    .n-btn {
+      --btn-bg: transparent; --btn-fg: var(--n-text); --btn-bd: var(--n-border);
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px;
+      border: 1px solid var(--btn-bd); border-radius: var(--n-r-8); background: var(--btn-bg); color: var(--btn-fg);
+      font-weight: 550; font-size: var(--n-t-14); line-height: 1; text-decoration: none; white-space: nowrap; cursor: pointer;
+      transition: background var(--n-fast) var(--n-ease), border-color var(--n-fast) var(--n-ease), color var(--n-fast) var(--n-ease), transform var(--n-fast) var(--n-ease);
+    }
+    .n-btn:hover { --btn-bd: var(--n-border-strong); --btn-bg: var(--n-surface-2); }
+    .n-btn:active { transform: translateY(1px); }
+    .n-btn[disabled] { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .n-btn--primary { --btn-bg: var(--n-accent); --btn-fg: var(--n-accent-ink); --btn-bd: var(--n-accent); }
+    .n-btn--primary:hover { --btn-bg: #f7c6b2; --btn-bd: #f7c6b2; }
+    .n-btn--primary[disabled]:hover { --btn-bg: var(--n-accent); --btn-bd: var(--n-accent); }
+    .n-btn--ghost { --btn-bd: transparent; }
+    .n-btn--ghost:hover { --btn-bd: transparent; }
+    .n-btn--danger { --btn-fg: var(--n-danger); --btn-bd: var(--n-danger-line); }
+    .n-btn--danger:hover { --btn-bg: var(--n-danger-soft); --btn-bd: var(--n-danger); }
+    .n-btn--sm { min-height: 32px; padding: 0 12px; font-size: var(--n-t-13); border-radius: var(--n-r-6); }
+    .n-btn--lg { min-height: 46px; padding: 0 22px; font-size: 0.9375rem; }
+
+    .n-badge {
+      --b-fg: var(--n-text-2); --b-bg: var(--n-surface-2); --b-bd: var(--n-border);
+      display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border: 1px solid var(--b-bd);
+      border-radius: 999px; background: var(--b-bg); color: var(--b-fg); font-size: var(--n-t-12); font-weight: 550; white-space: nowrap; letter-spacing: 0;
+    }
+    .n-badge--lime { --b-fg: var(--n-accent); --b-bg: var(--n-accent-soft); --b-bd: var(--n-accent-line); }
+    .n-badge--amber { --b-fg: var(--n-warn); --b-bg: var(--n-warn-soft); --b-bd: var(--n-warn-line); }
+    .n-badge--coral { --b-fg: var(--n-danger); --b-bg: var(--n-danger-soft); --b-bd: var(--n-danger-line); }
+    .n-badge--outline { --b-bg: transparent; }
+    .n-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+    .n-dot--live { animation: n-pulse 2s var(--n-ease) infinite; }
+    @keyframes n-pulse {
+      0% { box-shadow: 0 0 0 0 rgb(242 180 155 / 0.5); }
+      70% { box-shadow: 0 0 0 6px rgb(242 180 155 / 0); }
+      100% { box-shadow: 0 0 0 0 rgb(242 180 155 / 0); }
+    }
+
+    .n-stat { display: grid; gap: 3px; min-width: 0; align-content: start; }
+    .n-stat__label { font-size: var(--n-t-12); color: var(--n-text-2); }
+    .n-stat__value { font-family: var(--n-mono); font-variant-numeric: tabular-nums; font-size: 1.0625rem; font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; overflow-wrap: anywhere; }
+    .n-stat__hint { font-size: 11px; color: var(--n-text-3); line-height: 1.35; }
+
+    .n-field { display: grid; gap: 6px; min-width: 0; align-content: start; }
+    .n-field__label { font-size: var(--n-t-13); font-weight: 550; color: var(--n-text); }
+    .n-field__hint { font-size: var(--n-t-12); color: var(--n-text-3); }
+    .n-field__error { font-size: var(--n-t-12); color: var(--n-danger); }
+    .n-field__error:empty { display: none; }
+    .n-input {
+      width: 100%; min-height: 40px; padding: 8px 12px; border: var(--n-line); border-radius: var(--n-r-8);
+      background: var(--n-bg); color: var(--n-text); font-size: var(--n-t-14); transition: border-color var(--n-fast) var(--n-ease), box-shadow var(--n-fast) var(--n-ease);
+    }
+    .n-input:hover { border-color: var(--n-border-strong); }
+    .n-input:focus { outline: none; border-color: var(--n-accent-line); box-shadow: 0 0 0 3px var(--n-accent-soft); }
+    .n-input::placeholder { color: var(--n-text-3); }
+    .n-input[aria-invalid="true"] { border-color: var(--n-danger-line); }
+    .n-input[type="number"] { font-family: var(--n-mono); font-variant-numeric: tabular-nums; }
+
+    .n-range { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; cursor: pointer; --fill: 50%; }
+    .n-range::-webkit-slider-runnable-track { height: 4px; border-radius: 999px; background: linear-gradient(to right, var(--n-accent) var(--fill), var(--n-surface-3) var(--fill)); }
+    .n-range::-moz-range-track { height: 4px; border-radius: 999px; background: var(--n-surface-3); }
+    .n-range::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--n-accent); }
+    .n-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%; background: var(--n-text); border: 3px solid var(--n-bg); box-shadow: 0 0 0 1px var(--n-border); }
+    .n-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--n-text); border: 3px solid var(--n-bg); }
+
+    .n-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 3px; gap: 3px; border: var(--n-line); border-radius: var(--n-r-8); background: var(--n-bg); }
+    .n-seg button {
+      min-height: 34px; padding: 0 8px; border: 0; border-radius: var(--n-r-6); background: transparent; color: var(--n-text-2);
+      font-size: var(--n-t-13); font-weight: 550; cursor: pointer; white-space: nowrap;
+      transition: background var(--n-fast) var(--n-ease), color var(--n-fast) var(--n-ease);
+    }
+    .n-seg button:hover { color: var(--n-text); }
+    .n-seg button[aria-pressed="true"] { background: var(--n-surface-3); color: var(--n-text); box-shadow: inset 0 0 0 1px var(--n-border); }
+
+    .n-meter { position: relative; height: 4px; border-radius: 999px; background: var(--n-surface-3); overflow: hidden; }
+    .n-meter > i { position: absolute; inset: 0 auto 0 0; width: var(--v, 0%); border-radius: inherit; background: var(--n-accent); transition: width var(--n-mid) var(--n-ease); }
+    .n-meter--amber > i { background: var(--n-warn); }
+    .n-meter--coral > i { background: var(--n-danger); }
+
+    .n-notice { display: flex; gap: 12px; padding: 11px 13px; border: 1px solid var(--n-border); border-radius: var(--n-r-8); background: var(--n-surface-2); font-size: var(--n-t-13); color: var(--n-text-2); }
+    .n-notice strong { color: var(--n-text); font-weight: 600; }
+    .n-notice--amber { border-color: var(--n-warn-line); background: var(--n-warn-soft); }
+    .n-notice--coral { border-color: var(--n-danger-line); background: var(--n-danger-soft); }
+    .n-code {
+      display: block; padding: 12px 14px; border: var(--n-line); border-radius: var(--n-r-8); background: var(--n-code-bg);
+      color: var(--n-text); font-family: var(--n-mono); font-size: var(--n-t-12); line-height: 1.6; overflow-x: auto; white-space: pre;
+    }
+
+    .n-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: var(--n-t-13); color: var(--n-text-2); }
+    .n-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+    .n-switch { position: relative; flex: none; width: 32px; height: 18px; border-radius: 999px; border: 1px solid var(--n-border); background: var(--n-surface-3); transition: background var(--n-fast) var(--n-ease), border-color var(--n-fast) var(--n-ease); }
+    .n-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--n-text-2); transition: transform var(--n-fast) var(--n-ease), background var(--n-fast) var(--n-ease); }
+    .n-toggle input:checked + .n-switch { background: var(--n-accent); border-color: var(--n-accent); }
+    .n-toggle input:checked + .n-switch::after { transform: translateX(14px); background: var(--n-accent-ink); }
+    .n-toggle input:focus-visible + .n-switch { outline: 2px solid var(--n-accent); outline-offset: 2px; }
+
+    /* ======================================================== Compute Bridge (cb-) */
+
+    /* top bar */
+    .cb-top { position: sticky; top: 0; z-index: 30; background: rgb(30 22 38 / 0.86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--n-border-soft); }
+    .cb-top__in { display: flex; align-items: center; gap: 12px; min-height: 60px; }
+    .cb-top__product { padding-left: 12px; border-left: 1px solid var(--n-border); font-size: var(--n-t-14); font-weight: 550; color: var(--n-text-2); white-space: nowrap; }
+    .cb-top__end { margin-left: auto; display: flex; align-items: center; gap: 4px 10px; }
+    .cb-conn { display: inline-flex; align-items: center; gap: 7px; margin-right: 4px; font-size: var(--n-t-12); color: var(--n-text-3); white-space: nowrap; }
+    .cb-conn i { width: 7px; height: 7px; border-radius: 50%; background: var(--n-text-3); flex: none; }
+    .cb-conn[data-state="live"] i { background: var(--n-accent); box-shadow: 0 0 0 3px var(--n-accent-soft); }
+    .cb-conn[data-state="offline"] { color: var(--n-warn); }
+    .cb-conn[data-state="offline"] i { background: var(--n-warn); }
+    @media (max-width: 700px) { .cb-top__product, .cb-top__old, .cb-top__tag { display: none; } }
+
+    /* the canvas: a node editor at night. A faint dot grid, dusk lilac on the left, the first peach light on the right. */
+    .cb-canvas {
+      min-height: calc(100dvh - 61px);
+      background:
+        radial-gradient(1100px 560px at 92% -6%, rgb(242 180 155 / 0.085), transparent 62%),
+        radial-gradient(900px 620px at -4% 4%, rgb(196 167 231 / 0.055), transparent 60%),
+        radial-gradient(circle at 1px 1px, rgb(241 233 238 / 0.06) 1px, transparent 1.6px) 0 0 / 24px 24px,
+        var(--n-bg);
+    }
+    .cb-app { padding-top: 40px; padding-bottom: 120px; }
+
+    /* hero */
+    .cb-hero { display: grid; gap: 14px; max-width: 900px; margin-bottom: 44px; }
+    .cb-h1 { font-family: var(--n-serif); font-weight: 400; font-size: clamp(2.125rem, 3.4vw + 0.9rem, 3.75rem); line-height: 1.02; letter-spacing: -0.028em; font-optical-sizing: auto; }
+    .cb-h1 em { font-style: italic; color: var(--n-accent); }
+    .cb-lede { color: var(--n-text-2); font-size: 1.0625rem; line-height: 1.6; max-width: 64ch; }
+
+    /* board: the nodes and the wires between them */
+    .cb-board { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }
+    .cb-wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+    .cb-board > :not(.cb-wires) { position: relative; z-index: 1; min-width: 0; }
+    .cb-concepts { display: none; }
+    .cb-node--result, .cb-node--log { align-self: start; }
+    @media (min-width: 1180px) {
+      .cb-board { grid-template-columns: minmax(0, 1fr) minmax(0, 0.94fr) minmax(0, 1fr); column-gap: 76px; row-gap: 64px; align-items: start; }
+      .cb-concepts { display: contents; }
+      .cb-node--result { grid-column: 1 / 3; }
+    }
+
+    /* concept: the text that explains a block, wired to it */
+    .cb-concept { position: relative; z-index: 1; padding-right: 8px; cursor: default; }
+    .cb-concept__n { font-family: var(--n-serif); font-style: italic; font-size: 1rem; color: var(--n-accent); font-variant-numeric: lining-nums; }
+    .cb-concept b { display: block; margin: 2px 0 6px; font-family: var(--n-serif); font-weight: 450; font-size: 1.5rem; line-height: 1.12; letter-spacing: -0.015em; transition: color var(--n-mid) var(--n-ease); }
+    .cb-concept p { font-size: var(--n-t-14); color: var(--n-text-2); max-width: 38ch; }
+    .cb-concept .sock { left: 28px; bottom: -34px; top: auto; }
+    .cb-concept.is-hot b { color: var(--n-accent); }
+
+    /* sockets: where wires attach */
+    .sock { position: absolute; z-index: 3; width: 13px; height: 13px; border-radius: 50%; background: var(--n-bg); border: 2px solid var(--n-border-strong); transition: border-color var(--n-mid) var(--n-ease), box-shadow var(--n-mid) var(--n-ease); }
+    .sock::after { content: ""; position: absolute; inset: 2px; border-radius: 50%; background: transparent; transition: background var(--n-mid) var(--n-ease); }
+    .sock.is-on, .is-hot > .sock, .sock.is-hot { border-color: var(--sc, var(--n-accent)); box-shadow: 0 0 0 4px color-mix(in srgb, var(--sc, var(--n-accent)) 16%, transparent); }
+    .sock.is-on::after, .is-hot > .sock::after, .sock.is-hot::after { background: var(--sc, var(--n-accent)); }
+    .sock--t { top: -7px; left: 28px; }
+    .sock--b { bottom: -7px; left: 28px; }
+    .sock--bc { bottom: -7px; left: calc(50% - 6.5px); }
+    .sock--l { left: -7px; top: 19px; }
+    .sock--r { right: -7px; top: 19px; }
+    .sock.d { display: none; }
+    @media (min-width: 1180px) { .sock.d { display: block; } .sock.m { display: none; } }
+
+    /* wires */
+    .w { fill: none; stroke: var(--n-border-strong); stroke-width: 1.5; transition: stroke var(--n-mid) var(--n-ease), stroke-opacity var(--n-mid) var(--n-ease); }
+    .w--note { stroke: var(--n-text-3); stroke-opacity: 0.5; stroke-width: 1.25; stroke-dasharray: 2 5; }
+    .w.is-on { stroke: var(--wc, var(--n-accent)); stroke-opacity: 0.5; }
+    .w.is-hot { stroke: var(--wc, var(--n-accent)); stroke-opacity: 1; }
+    .wf { fill: none; stroke: var(--wc, var(--n-accent)); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 0.1 14; opacity: 0; transition: opacity var(--n-mid) var(--n-ease); }
+    .wf.is-on { opacity: 0.9; animation: cb-flow 1s linear infinite; }
+    @keyframes cb-flow { to { stroke-dashoffset: -14.1; } }
+    .pk { filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 10px currentColor); }
+
+    /* node card */
+    .cb-node {
+      --pad: 16px;
+      position: relative; padding: var(--pad); border: 1px solid var(--n-border); border-radius: 12px;
+      background: linear-gradient(180deg, var(--n-surface-2), var(--n-surface) 64px);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 28px 56px -32px rgb(8 3 12 / 0.75);
+      transition: border-color var(--n-mid) var(--n-ease), box-shadow var(--n-mid) var(--n-ease);
+    }
+    @media (min-width: 720px) { .cb-node { --pad: 20px; } }
+    .cb-node.is-hot { border-color: var(--n-accent-line); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 0 0 3px var(--n-accent-soft), 0 28px 56px -32px rgb(8 3 12 / 0.75); }
+    .cb-node.is-live { border-color: color-mix(in srgb, var(--n-accent) 34%, var(--n-border)); }
+    .cb-node__head { display: flex; align-items: center; gap: 10px; min-height: 52px; margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) var(--pad); padding: 12px var(--pad); border-bottom: 1px solid var(--n-border-soft); }
+    .cb-node__n { font-family: var(--n-serif); font-style: italic; font-size: 0.9375rem; color: var(--n-text-3); font-variant-numeric: lining-nums; }
+    .cb-node__title { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.01em; }
+    .cb-node__aside { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .cb-node__body { display: grid; gap: 16px; }
+
+    /* 01 form */
+    .cb-form { display: grid; gap: 16px; }
+    .cb-desc { font-size: var(--n-t-13); color: var(--n-text-2); margin-top: -4px; }
+    .cb-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .cb-preset { display: grid; gap: 2px; padding: 8px 10px; text-align: left; border: var(--n-line); border-radius: var(--n-r-8); background: transparent; cursor: pointer; transition: border-color var(--n-fast) var(--n-ease), background var(--n-fast) var(--n-ease); }
+    .cb-preset:hover { border-color: var(--n-border-strong); background: var(--n-surface-2); }
+    .cb-preset b { font-size: var(--n-t-13); font-weight: 600; }
+    .cb-preset span { font-family: var(--n-mono); font-size: 10.5px; color: var(--n-text-3); line-height: 1.45; }
+    .cb-preset[aria-pressed="true"] { border-color: var(--n-accent-line); background: var(--n-accent-soft); }
+    .cb-preset[aria-pressed="true"] b { color: var(--n-accent); }
+    @media (max-width: 420px) { .cb-presets { grid-template-columns: 1fr; } }
+    .cb-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+    .cb-budget { display: grid; gap: 6px; font-size: var(--n-t-12); color: var(--n-text-2); }
+    .cb-budget__row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .cb-form__foot { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding-top: 16px; border-top: 1px solid var(--n-border-soft); }
+    .cb-form__foot .sock--r { top: calc(50% + 8px - 6.5px); right: calc(-1 * var(--pad) - 7px); }
+    .cb-form__queue { font-size: var(--n-t-13); color: var(--n-text-2); }
+    .cb-form__queue b { font-family: var(--n-mono); font-weight: 500; color: var(--n-text); }
+
+    /* 02 coordinator */
+    .cb-host { font-family: var(--n-mono); font-size: 11.5px; color: var(--n-text-3); }
+    .cb-idle { display: grid; gap: 8px; padding: 6px 0 4px; }
+    .cb-idle b { font-family: var(--n-serif); font-weight: 400; font-size: 1.625rem; line-height: 1.1; letter-spacing: -0.015em; }
+    .cb-idle p { color: var(--n-text-2); font-size: var(--n-t-14); }
+    .cb-spec { font-size: var(--n-t-13); color: var(--n-text-2); }
+    .cb-figs { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+    .cb-big { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; }
+    .cb-big b { font-family: var(--n-serif); font-weight: 400; font-size: clamp(3.25rem, 2.4vw + 2rem, 4.5rem); line-height: 0.9; letter-spacing: -0.035em; font-variant-numeric: lining-nums tabular-nums; }
+    .cb-big span { color: var(--n-text-2); font-size: var(--n-t-14); }
+    .cb-pct { font-family: var(--n-serif); font-size: 1.75rem; line-height: 1; color: var(--n-text-2); font-variant-numeric: lining-nums tabular-nums; }
+    .cb-queue { display: flex; height: 10px; border-radius: 999px; background: var(--n-surface-3); overflow: hidden; }
+    .cb-queue i { flex: none; height: 100%; background: var(--c); box-shadow: inset -2px 0 0 var(--n-surface); transition: width var(--n-mid) var(--n-ease); }
+    .cb-queue i.is-flight { background: repeating-linear-gradient(135deg, var(--c) 0 3px, color-mix(in srgb, var(--c) 30%, transparent) 3px 6px); }
+    .cb-legend { display: grid; gap: 6px; font-size: var(--n-t-13); color: var(--n-text-2); }
+    .cb-legend li { display: flex; align-items: center; gap: 8px; min-width: 0; transition: opacity var(--n-mid) var(--n-ease); }
+    .cb-legend li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+    .cb-legend li.is-rest::before { background: var(--n-surface-3); }
+    .cb-legend .cb-legend__name { color: var(--n-text); font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cb-legend .cb-legend__v { margin-left: auto; font-family: var(--n-mono); font-size: var(--n-t-12); white-space: nowrap; }
+    .cb-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; padding-top: 14px; border-top: 1px solid var(--n-border-soft); }
+    .cb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+
+    /* 03 provider PCs */
+    .cb-pcs { display: grid; gap: 12px; align-content: start; }
+    .cb-pcs > .sock--b { bottom: -7px; }
+    .cb-pcs__head { padding: 0; }
+    .cb-pcs__head .cb-node__head { margin: 0; border-bottom: 0; }
+    .cb-pc.is-working { box-shadow: inset 0 2px 0 var(--c), inset 0 1px 0 rgb(255 255 255 / 0.04), 0 28px 56px -32px rgb(8 3 12 / 0.75); }
+    .cb-pc .cb-node__head { margin-bottom: 12px; }
+    .cb-pc__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent); }
+    .cb-pc__name { font-weight: 600; font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .cb-pc__count { display: flex; align-items: baseline; gap: 5px; line-height: 1; }
+    .cb-pc__count b { font-family: var(--n-serif); font-weight: 400; font-size: 1.625rem; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+    .cb-pc__count span { font-size: 11px; color: var(--n-text-3); }
+    .cb-pc__spec { font-size: var(--n-t-13); color: var(--n-text-2); overflow-wrap: anywhere; }
+    .cb-pc__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .cb-pc__work { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--n-border-soft); font-size: var(--n-t-13); color: var(--n-text-2); }
+    .cb-pc__work b { color: var(--n-text); font-weight: 550; }
+    .cb-pc.is-off { opacity: 0.62; }
+    .cb-pc.is-off .cb-pc__dot { background: var(--n-surface-3); box-shadow: none; }
+    .cb-empty { display: grid; gap: 12px; font-size: var(--n-t-14); color: var(--n-text-2); }
+
+    /* 04 result */
+    .cb-node--result .cb-node__aside { flex-wrap: wrap; justify-content: flex-end; }
+    .cb-stage { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--n-border); background: var(--n-code-bg); }
+    .cb-stage > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+    .cb-stage__cap { position: absolute; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 999px; background: rgb(23 15 30 / 0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font-size: var(--n-t-12); color: var(--n-text-2); }
+    .cb-stage__cap::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--n-text-3)); }
+    .cb-stage__cap:empty { display: none; }
+    .cb-bands { position: absolute; inset: 0; }
+    .cb-band { position: absolute; left: 0; right: 0; transition: background-color var(--n-mid) var(--n-ease), box-shadow var(--n-mid) var(--n-ease), opacity var(--n-mid) var(--n-ease); }
+    .cb-band.is-pending { background: repeating-linear-gradient(135deg, rgb(23 15 30 / 0.9) 0 5px, rgb(30 22 38 / 0.9) 5px 10px); }
+    .cb-band.is-assigned { background: color-mix(in srgb, var(--c) 34%, rgb(23 15 30 / 0.7)); box-shadow: inset 6px 0 0 var(--c); animation: cb-breathe 1.1s ease-in-out infinite alternate; }
+    .cb-band.is-done { background: color-mix(in srgb, var(--c) 10%, transparent); box-shadow: inset 6px 0 0 var(--c); }
+    .cb-stage.is-plain .cb-band.is-done { background: none; box-shadow: none; }
+    @keyframes cb-breathe { from { opacity: 0.55; } to { opacity: 1; } }
+    .cb-player { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+    .cb-player__scrub { flex: 1 1 220px; display: grid; gap: 0; }
+    .cb-player__fps { flex: 0 1 180px; display: grid; gap: 0; font-size: 11px; color: var(--n-text-3); }
+    .cb-player__count { font-size: 11px; color: var(--n-text-3); }
+    .cb-cells { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+    .cb-cell { position: relative; padding: 0; overflow: hidden; border-radius: 6px; border: 1px dashed var(--n-border); background: var(--n-code-bg); cursor: default; transition: opacity var(--n-mid) var(--n-ease), border-color var(--n-mid) var(--n-ease); }
+    .cb-cell img { width: 100%; height: 100%; object-fit: cover; }
+    .cb-cell__n { position: absolute; left: 5px; bottom: 4px; font: 500 10px/1 var(--n-mono); color: var(--n-text-2); text-shadow: 0 1px 3px rgb(0 0 0 / 0.9); }
+    .cb-cell.is-assigned { border: 1px solid var(--c); box-shadow: inset 0 0 0 1px var(--c), 0 0 14px -4px var(--c); }
+    .cb-cell.is-assigned::after { content: ""; position: absolute; top: calc(50% - 7px); left: calc(50% - 7px); width: 14px; height: 14px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--c) 25%, transparent); border-top-color: var(--c); animation: cb-spin 0.8s linear infinite; }
+    .cb-cell.is-done { border: 1px solid var(--n-border); box-shadow: inset 0 -3px 0 var(--c); cursor: pointer; }
+    .cb-cell.is-current { outline: 2px solid var(--n-text); outline-offset: 1px; }
+    @keyframes cb-spin { to { transform: rotate(1turn); } }
+    .cb-result-empty { display: grid; place-items: center; gap: 6px; min-height: 260px; padding: 24px; border: 1px dashed var(--n-border); border-radius: 10px; text-align: center; color: var(--n-text-2); font-size: var(--n-t-14); }
+    .cb-result-empty b { font-family: var(--n-serif); font-weight: 400; font-size: 1.375rem; color: var(--n-text); }
+
+    /* dim everything that is not the PC under the pointer */
+    .cb-board[data-focus] [data-pc] { transition: opacity var(--n-mid) var(--n-ease); }
+
+    /* 05 log, in the spirit of a Claude Code transcript */
+    .cb-log { display: grid; gap: 10px; max-height: 460px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--n-border) transparent; }
+    .cb-log li { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; column-gap: 10px; align-items: start; font-size: var(--n-t-13); animation: cb-in 320ms var(--n-ease); }
+    .cb-log__dot { width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--c, var(--n-text-3)); }
+    .cb-log__text { color: var(--n-text-2); line-height: 1.5; overflow-wrap: anywhere; }
+    .cb-log__text b { color: var(--n-text); font-weight: 600; }
+    .cb-log__sub { position: relative; margin-top: 3px; padding-left: 18px; font-size: var(--n-t-12); color: var(--n-text-3); line-height: 1.45; overflow-wrap: anywhere; }
+    .cb-log__sub::before { content: ""; position: absolute; left: 3px; top: -1px; width: 9px; height: 9px; border-left: 1px solid var(--n-border-strong); border-bottom: 1px solid var(--n-border-strong); border-bottom-left-radius: 3px; }
+    .cb-log time { font-family: var(--n-mono); font-size: 10.5px; color: var(--n-text-3); padding-top: 3px; }
+    .cb-log li.is-warn .cb-log__text b { color: var(--n-warn); }
+    .cb-log li.is-error .cb-log__text b { color: var(--n-danger); }
+    @keyframes cb-in { from { opacity: 0; transform: translateY(4px); } }
+
+    /* status pill: a nod to the Claude Code spinner */
+    .cb-pill {
+      position: fixed; left: 50%; bottom: 20px; z-index: 40; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 2 * var(--n-gutter));
+      padding: 8px 8px 8px 16px; border: 1px solid var(--n-border-strong); border-radius: 999px;
+      background: rgb(38 29 49 / 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 18px 40px -16px rgb(8 3 12 / 0.8), 0 0 0 1px rgb(0 0 0 / 0.2); font-size: var(--n-t-14); white-space: nowrap;
+      animation: cb-in 280ms var(--n-ease);
+    }
+    .cb-spin { display: inline-block; width: 1.1em; text-align: center; color: var(--n-accent); font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", "DejaVu Sans", sans-serif; font-size: 1rem; }
+    .cb-pill__verb { font-weight: 600; background: linear-gradient(90deg, var(--n-text) 0%, var(--n-text) 38%, var(--n-accent) 50%, var(--n-text) 62%, var(--n-text) 100%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: cb-shimmer 2.2s linear infinite; }
+    .cb-pill.is-done .cb-pill__verb { animation: none; background: none; color: var(--n-accent); }
+    @keyframes cb-shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+    .cb-pill__meta { color: var(--n-text-3); font-size: var(--n-t-13); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .cb-pill .n-btn { flex: none; border-radius: 999px; }
+    @media (max-width: 560px) { .cb-pill { left: var(--n-gutter); right: var(--n-gutter); transform: none; } .cb-pill__meta { flex: 1; } }
+
+    /* gate */
+    .cb-gate { max-width: 520px; margin: 0 auto; padding-top: 9vh; display: grid; gap: 28px; }
+    .cb-gate .cb-node__body { gap: 14px; }
+    .cb-gate__row { display: flex; gap: 8px; }
+    .cb-gate__row .n-input { flex: 1; min-width: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .n-dot--live, .wf.is-on, .cb-band.is-assigned, .cb-cell.is-assigned::after, .cb-pill__verb, .cb-log li, .cb-pill { animation: none; }
+      .cb-pill__verb { background: none; color: var(--n-text); }
+    }
+  </style>
+</head>
+<body>
+  <a class="n-sr-only n-skip" href="#main">Sari la conținut</a>
+  <header class="cb-top">
+    <div class="n-wrap cb-top__in">
+      <span class="n-logo" aria-label="NODE">
+        <svg viewBox="0 0 26 26" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M5 21.5V8.4"/><path d="M7.2 7.6 18.6 19"/><path d="M21 17.4V4.5"/><circle cx="5" cy="5.6" r="2.7"/>
+          </g>
+          <circle cx="21" cy="20.6" r="3" fill="var(--n-accent)"/>
+        </svg>
+        <span>NODE</span>
+      </span>
+      <span class="cb-top__product">Compute Bridge</span>
+      <span class="n-badge n-badge--amber cb-top__tag">Prototip de test</span>
+      <div class="cb-top__end">
+        <span class="cb-conn" id="conn" data-state="none"><i aria-hidden="true"></i><span id="connText">Neconectat</span></span>
+        <a class="n-btn n-btn--sm n-btn--ghost cb-top__old" href="/">Interfața originală</a>
+        <button class="n-btn n-btn--sm" id="changeToken" type="button" hidden>Schimbă codul</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="cb-canvas">
+    <section id="gate" class="n-wrap cb-gate" aria-labelledby="gateTitle" hidden>
+      <div class="cb-hero" style="margin: 0">
+        <p class="n-eyebrow">VNU Hack · Compute Bridge</p>
+        <h1 class="cb-h1" id="gateTitle">Conectează-te la <em>coordonator</em>.</h1>
+        <p class="cb-lede">Codul de acces apare în terminalul în care rulează <code>node server.js</code>. Rămâne doar în acest tab.</p>
+      </div>
+      <form id="gateForm" class="cb-node" novalidate>
+        <div class="cb-node__head"><span class="cb-node__n">00</span><span class="cb-node__title">Cod de acces</span></div>
+        <div class="cb-node__body">
+          <div class="n-field">
+            <label class="n-sr-only" for="token">Cod de acces</label>
+            <div class="cb-gate__row">
+              <input class="n-input" id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Lipește codul aici" aria-describedby="gateError">
+              <button class="n-btn n-btn--primary" type="submit">Conectează</button>
+            </div>
+            <p class="n-field__error" id="gateError" role="alert"></p>
+          </div>
+          <p class="n-meta">Testezi pe un singur PC? Rulează <code>node scripts/local.js</code>. Pornește coordonatorul și două PC-uri furnizoare pe acest calculator, apoi afișează linkul de deschis.</p>
+        </div>
+      </form>
+    </section>
+
+    <div id="app" class="n-wrap cb-app" hidden>
+      <header class="cb-hero">
+        <p class="n-eyebrow">VNU Hack · Compute Bridge · interfață de test</p>
+        <h1 class="cb-h1">Două PC-uri calculează. <em>Al treilea</em> împarte munca și adună rezultatul.</h1>
+        <p class="cb-lede">Lucrarea e tăiată în sarcini mici care așteaptă într-o coadă comună. Fiecare PC își ia singur următoarea sarcină când o termină pe cea curentă, așa că cel mai rapid face mai mult. Firele de mai jos arată în timp real ce pleacă spre fiecare PC și ce se întoarce.</p>
+      </header>
+
+      <div class="cb-board" id="board">
+        <svg class="cb-wires" id="wires" aria-hidden="true"></svg>
+
+        <div class="cb-concepts">
+          <div class="cb-concept" data-link="form">
+            <span class="cb-concept__n">01</span>
+            <b>Trimiți o lucrare</b>
+            <p>Alegi ce se calculează și cât de greu: o animație pe GPU sau o imagine pe CPU.</p>
+            <i class="sock" id="s-c1" aria-hidden="true"></i>
+          </div>
+          <div class="cb-concept" data-link="coord">
+            <span class="cb-concept__n">02</span>
+            <b>Coordonatorul o taie în sarcini</b>
+            <p>Cadre pentru animație, benzi de rânduri pentru imagini. Toate intră într-o singură coadă.</p>
+            <i class="sock" id="s-c2" aria-hidden="true"></i>
+          </div>
+          <div class="cb-concept" data-link="pcs">
+            <span class="cb-concept__n">03</span>
+            <b>PC-urile își iau singure de lucru</b>
+            <p>Un slot liber cere următoarea sarcină. Procesoarele și VRAM-ul nu se adună: fiecare PC lucrează separat.</p>
+            <i class="sock" id="s-c3" aria-hidden="true"></i>
+          </div>
+        </div>
+
+        <section class="cb-node" id="n-form" data-link="form" aria-labelledby="formTitle">
+          <i class="sock sock--t" id="s-form-t" aria-hidden="true"></i>
+          <i class="sock sock--b m" id="s-form-b" aria-hidden="true"></i>
+          <div class="cb-node__head"><span class="cb-node__n">01</span><h2 class="cb-node__title" id="formTitle">Lucrare nouă</h2></div>
+          <form id="form" class="cb-form" novalidate>
+            <div class="n-seg" role="group" aria-label="Tipul lucrării" id="modes"></div>
+            <p class="cb-desc" id="modeDesc"></p>
+            <div class="cb-presets" id="presets" role="group" aria-label="Setări rapide pentru animație"></div>
+            <div class="cb-fields" id="fields"></div>
+            <div class="cb-budget" id="budget"></div>
+            <div id="formNotice"></div>
+            <div class="cb-form__foot">
+              <i class="sock sock--r d" id="s-form-r" aria-hidden="true"></i>
+              <span class="cb-form__queue" id="queueInfo"></span>
+              <button class="n-btn n-btn--primary n-btn--lg" id="submit" type="submit">Pornește lucrarea</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="cb-node" id="n-coord" data-link="coord" aria-labelledby="coordTitle">
+          <i class="sock sock--t" id="s-coord-t" aria-hidden="true"></i>
+          <i class="sock sock--l d" id="s-coord-l" aria-hidden="true"></i>
+          <i class="sock sock--r d" id="s-coord-r" aria-hidden="true"></i>
+          <i class="sock sock--bc" id="s-coord-b" aria-hidden="true"></i>
+          <div class="cb-node__head">
+            <span class="cb-node__n">02</span><h2 class="cb-node__title" id="coordTitle">Coordonator</h2>
+            <span class="cb-node__aside" id="coordBadge"></span>
+          </div>
+          <div class="cb-node__body">
+            <p class="cb-host" id="coordHost"></p>
+            <div class="cb-node__body" id="coordBody"></div>
+            <div class="cb-actions" id="coordActions" hidden>
+              <button class="n-btn n-btn--danger n-btn--sm" id="cancel" type="button">Oprește lucrarea</button>
+              <span class="n-meta">Sarcinile deja pornite se pot termina.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="cb-pcs" id="n-pcs" aria-labelledby="pcsTitle">
+          <div class="cb-node cb-pcs__head" data-link="pcs">
+            <i class="sock sock--t" id="s-pcs-t" aria-hidden="true"></i>
+            <div class="cb-node__head">
+              <span class="cb-node__n">03</span><h2 class="cb-node__title" id="pcsTitle">PC-uri furnizoare</h2>
+              <span class="cb-node__aside n-meta" id="pcsCount"></span>
+            </div>
+          </div>
+          <div class="cb-pcs" id="pcList"></div>
+          <i class="sock sock--b" id="s-pcs-b" aria-hidden="true"></i>
+        </section>
+
+        <section class="cb-node cb-node--result" id="n-result" aria-labelledby="resultTitle">
+          <i class="sock sock--t" id="s-result-t" aria-hidden="true"></i>
+          <div class="cb-node__head">
+            <span class="cb-node__n">04</span><h2 class="cb-node__title" id="resultTitle">Rezultat</h2>
+            <span class="cb-node__aside" id="resultTools"></span>
+          </div>
+          <div class="cb-node__body" id="resultBody"></div>
+        </section>
+
+        <section class="cb-node cb-node--log" id="n-log" aria-labelledby="logTitle">
+          <i class="sock sock--t d" id="s-log-t" aria-hidden="true"></i>
+          <div class="cb-node__head">
+            <span class="cb-node__n">05</span><h2 class="cb-node__title" id="logTitle">Jurnal</h2>
+            <span class="cb-node__aside n-meta">din starea coordonatorului</span>
+          </div>
+          <ol class="cb-log" id="log" aria-live="off"></ol>
+        </section>
+      </div>
+    </div>
+    <p class="n-sr-only" aria-live="polite" id="announce"></p>
+  </main>
+
+  <div class="cb-pill" id="pill" hidden>
+    <span class="cb-spin" id="spin" aria-hidden="true">✻&#xFE0E;</span>
+    <span class="cb-pill__verb" id="pillVerb"></span>
+    <span class="cb-pill__meta n-num" id="pillMeta"></span>
+    <button class="n-btn n-btn--sm n-btn--danger" id="pillStop" type="button">Oprește</button>
+  </div>
+
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const TOKEN_KEY = 'bridgeToken'; // same key as the original page, so both share the code
+    const POLL_MS = 1000;
+    const store = {
+      get(key) { try { return sessionStorage.getItem(key) || ''; } catch { return ''; } },
+      set(key, value) { try { value ? sessionStorage.setItem(key, value) : sessionStorage.removeItem(key); } catch {} }
+    };
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const wide = matchMedia('(min-width: 1180px)');
+
+    // =============================================================== helpers
+
+    function h(tag, attrs, ...kids) {
+      const el = document.createElement(tag);
+      for (const [key, value] of Object.entries(attrs || {})) {
+        if (value == null || value === false) continue;
+        if (key === 'class') el.className = value;
+        else if (key === 'style') for (const [prop, v] of Object.entries(value)) el.style.setProperty(prop, v);
+        else if (key.startsWith('on')) el.addEventListener(key.slice(2), value);
+        else el.setAttribute(key, value === true ? '' : value);
+      }
+      for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid);
+      return el;
+    }
+    const nf = new Map();
+    function fmt(n, digits = 0) {
+      if (!nf.has(digits)) nf.set(digits, new Intl.NumberFormat('ro-RO', { minimumFractionDigits: digits, maximumFractionDigits: digits }));
+      return nf.get(digits).format(n);
+    }
+    // Romanian plural: 1 cadru, 2–19 cadre, 20 de cadre, 101 cadre, 120 de cadre.
+    function plural(n, one, many) {
+      if (n === 1) return `1 ${one}`;
+      const r = n % 100;
+      return `${fmt(n)} ${n !== 0 && (r === 0 || r >= 20) ? 'de ' : ''}${many}`;
+    }
+    function list(items) {
+      return items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} și ${items[items.length - 1]}`;
+    }
+    function duration(ms) {
+      const s = Math.max(0, Math.round(ms / 1000));
+      if (s < 60) return `${s} s`;
+      const m = Math.floor(s / 60);
+      return m < 60 ? `${m} min ${String(s % 60).padStart(2, '0')} s` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
+    }
+    function shortMs(ms) { return ms < 1000 ? `${fmt(ms)} ms` : `${fmt(ms / 1000, 1)} s`; }
+    function setFill(range) {
+      const min = Number(range.min), max = Number(range.max);
+      range.style.setProperty('--fill', `${max > min ? ((Number(range.value) - min) / (max - min)) * 100 : 0}%`);
+    }
+    // replaceChildren() would print "null" for an empty slot; this skips them.
+    function fill(el, ...kids) { el.replaceChildren(...kids.flat().filter(kid => kid != null && kid !== false)); }
+    function announce(text) { $('announce').textContent = text; }
+    function clock() { return new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+
+    const PALETTE = ['var(--pc-1)', 'var(--pc-2)', 'var(--pc-3)', 'var(--pc-4)', 'var(--pc-5)'];
+    const colors = new Map();
+    function colorFor(name) {
+      if (!colors.has(name)) colors.set(name, PALETTE[colors.size % PALETTE.length]);
+      return colors.get(name);
+    }
+
+    // =================================================================== api
+
+    let token = store.get(TOKEN_KEY);
+    const fromHash = /(?:^|[#&])token=([^&]+)/.exec(location.hash);
+    if (fromHash) {
+      token = decodeURIComponent(fromHash[1]);
+      store.set(TOKEN_KEY, token);
+      history.replaceState(null, '', location.pathname + location.search); // keep the code out of the address bar
+    }
+
+    async function api(url, options = {}) {
+      let response;
+      try {
+        response = await fetch(url, { ...options, headers: { 'x-bridge-token': token, 'content-type': 'application/json' } });
+      } catch {
+        const error = new Error('Coordonatorul nu răspunde. Verifică dacă server.js rulează.');
+        error.network = true;
+        throw error;
+      }
+      if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try { message = (await response.json()).error || message; } catch {}
+        const error = new Error(message);
+        error.status = response.status;
+        throw error;
+      }
+      return response;
+    }
+
+    // ================================================================= modes
+
+    const MODES = {
+      blender: {
+        label: 'Animație GPU', title: 'Animație 3D pe GPU', verb: 'Se randează', one: 'cadru', many: 'cadre',
+        desc: 'Blender Cycles randează cadre întregi ale aceleiași scene pe GPU-uri NVIDIA, cu OptiX sau CUDA. Fiecare GPU primește cadre separate.',
+        quality: 'Mostre per cadru',
+        limits: { width: [200, 1600], height: [200, 1000], quality: [8, 512], frames: [2, 96] },
+        defaults: { width: 960, height: 540, quality: 96, frames: 48 }
+      },
+      raytrace: {
+        label: 'Ray tracing', title: 'Randare 3D pe CPU', verb: 'Se calculează', one: 'bandă', many: 'benzi', rows: 16,
+        desc: 'Scenă 3D calculată pe CPU, tăiată în benzi de câte 16 rânduri. Fiecare slot CPU liber ia următoarea bandă.',
+        quality: 'Mostre per pixel',
+        limits: { width: [200, 1600], height: [200, 1000], quality: [1, 1024] },
+        defaults: { width: 1600, height: 900, quality: 64 }
+      },
+      fractal: {
+        label: 'Fractal', title: 'Imagine fractală pe CPU', verb: 'Se calculează', one: 'bandă', many: 'benzi', rows: 32,
+        desc: 'Imagine fractală pe CPU, tăiată în benzi de câte 32 de rânduri. Cel mai rapid mod de a vedea toate PC-urile la lucru.',
+        quality: 'Iterații',
+        limits: { width: [200, 3000], height: [200, 2000], quality: [100, 10000] },
+        defaults: { width: 2400, height: 1600, quality: 5000 }
+      }
+    };
+    const PIXEL_BUDGET = 80000000;
+    const PRESETS = [
+      { label: 'Demo scurt', v: { frames: 16, width: 640, height: 360, quality: 32 } },
+      { label: 'Implicit', v: { frames: 48, width: 960, height: 540, quality: 96 } },
+      { label: 'Test greu', v: { frames: 64, width: 1280, height: 720, quality: 128 } }
+    ];
+    const FIELDS = [
+      { key: 'width', label: 'Lățime', unit: 'px' },
+      { key: 'height', label: 'Înălțime', unit: 'px' },
+      { key: 'quality', label: null },
+      { key: 'frames', label: 'Cadre', only: 'blender' }
+    ];
+
+    // ================================================================= state
+
+    let last = null;          // last /api/state
+    const form = {
+      mode: 'blender', touched: false,
+      values: Object.fromEntries(Object.entries(MODES).map(([k, m]) => [k, Object.fromEntries(Object.entries(m.defaults).map(([f, v]) => [f, String(v)]))]))
+    };
+    let submitting = false;
+    let submitError = '';
+
+    const providerById = id => last?.providers.find(p => p.id === id);
+    const nameOf = id => providerById(id)?.name || 'PC';
+
+    // The server keeps old registrations after a provider restarts. Hide an offline entry when a PC
+    // with the same name is online again, so each machine appears once.
+    function visibleProviders() {
+      const all = last?.providers || [];
+      const onlineNames = new Set(all.filter(p => p.online).map(p => p.name));
+      return all.filter(p => p.online || !onlineNames.has(p.name)).sort((a, b) => Number(b.online) - Number(a.online));
+    }
+
+    // Tiles a provider holds or finished in the current job.
+    function tilesBy(job, providerId, status) {
+      return job ? job.tiles.reduce((acc, t, i) => (t.provider === providerId && t.status === status ? (acc.push(i), acc) : acc), []) : [];
+    }
+
+    // ================================================================== form
+
+    function validate() {
+      const mode = MODES[form.mode], values = form.values[form.mode], errors = {}, nums = {};
+      for (const [key, [min, max]] of Object.entries(mode.limits)) {
+        const raw = values[key].trim();
+        const n = Number(raw);
+        nums[key] = n;
+        if (!raw || !Number.isInteger(n)) errors[key] = 'Introdu un număr întreg.';
+        else if (n < min || n > max) errors[key] = `Între ${fmt(min)} și ${fmt(max)}.`;
+      }
+      let pixels = null;
+      if (form.mode === 'blender') {
+        pixels = nums.width * nums.height * nums.frames;
+        if (!errors.width && !errors.height && !errors.frames && pixels > PIXEL_BUDGET) errors.budget = 'Prea mulți pixeli în total: micșorează rezoluția sau numărul de cadre.';
+      }
+      const queue = form.mode === 'blender' ? nums.frames : Math.ceil(nums.height / mode.rows);
+      return { ok: !Object.keys(errors).length, errors, nums, pixels, queue };
+    }
+
+    function setMode(key) { form.mode = key; submitError = ''; buildForm(); }
+
+    function buildForm() {
+      const mode = MODES[form.mode];
+      const values = form.values[form.mode];
+      fill($('modes'), ...Object.entries(MODES).map(([key, m]) =>
+        h('button', { type: 'button', 'aria-pressed': String(form.mode === key), onclick: () => { form.touched = true; setMode(key); } }, m.label)));
+      $('modeDesc').textContent = mode.desc;
+      $('presets').hidden = form.mode !== 'blender';
+      fill($('presets'), ...(form.mode !== 'blender' ? [] : PRESETS.map(p => h('button', {
+        type: 'button', class: 'cb-preset', 'data-preset': p.label,
+        onclick: () => { form.touched = true; for (const [k, v] of Object.entries(p.v)) values[k] = String(v); submitError = ''; buildForm(); }
+      }, h('b', null, p.label), h('span', null, `${p.v.frames} cadre · ${p.v.width}×${p.v.height} · ${p.v.quality} mostre`)))));
+      fill($('fields'), ...FIELDS.filter(f => !f.only || f.only === form.mode).map(f => {
+        const [min, max] = mode.limits[f.key];
+        const id = `f-${f.key}`;
+        return h('div', { class: 'n-field' },
+          h('label', { class: 'n-field__label', for: id }, f.label || mode.quality),
+          h('input', {
+            class: 'n-input', id, type: 'number', inputmode: 'numeric', min, max, step: 1, value: values[f.key],
+            'aria-describedby': `${id}-hint ${id}-err`,
+            oninput: e => { form.touched = true; values[f.key] = e.target.value; submitError = ''; updateForm(); }
+          }),
+          h('span', { class: 'n-field__hint', id: `${id}-hint` }, `${fmt(min)}–${fmt(max)}${f.unit ? ' ' + f.unit : ''}`),
+          h('span', { class: 'n-field__error', id: `${id}-err` }));
+      }));
+      updateForm();
+    }
+
+    function updateForm() {
+      const v = validate();
+      const mode = MODES[form.mode];
+      for (const f of FIELDS) {
+        const input = $(`f-${f.key}`);
+        if (!input) continue;
+        input.setAttribute('aria-invalid', String(Boolean(v.errors[f.key])));
+        $(`f-${f.key}-err`).textContent = v.errors[f.key] || '';
+      }
+      for (const button of $('presets').children) {
+        const p = PRESETS.find(x => x.label === button.dataset.preset);
+        button.setAttribute('aria-pressed', String(Object.entries(p.v).every(([k, val]) => Number(form.values.blender[k]) === val)));
+      }
+      if (form.mode === 'blender' && Number.isFinite(v.pixels)) {
+        const share = Math.min(1, v.pixels / PIXEL_BUDGET);
+        $('budget').hidden = false;
+        fill($('budget'), 
+          h('div', { class: 'cb-budget__row' },
+            h('span', null, 'Pixeli în toată animația'),
+            h('span', { class: 'n-num' }, `${fmt(v.pixels / 1e6, 1)} M din ${fmt(PIXEL_BUDGET / 1e6)} M`)),
+          h('div', { class: `n-meter${share >= 1 ? ' n-meter--coral' : share > 0.85 ? ' n-meter--amber' : ''}` }, h('i', { style: { '--v': `${share * 100}%` } })),
+          v.errors.budget ? h('span', { class: 'n-field__error' }, v.errors.budget) : null);
+      } else {
+        $('budget').hidden = true;
+        $('budget').replaceChildren();
+      }
+      fill($('queueInfo'), ...(Number.isFinite(v.queue) && v.queue > 0
+        ? [h('b', null, fmt(v.queue)), ` ${plural(v.queue, mode.one, mode.many).replace(/^[\d.\s]+/, '')} în coadă`] : []));
+
+      const online = visibleProviders().filter(p => p.online);
+      const running = last?.job?.status === 'running';
+      let notice = null, block = false;
+      if (submitError) notice = h('div', { class: 'n-notice n-notice--coral', role: 'alert' }, h('span', null, h('strong', null, 'Lucrarea nu a pornit. '), submitError));
+      else if (running) { notice = h('div', { class: 'n-notice' }, 'O lucrare e în curs. Poți porni alta după ce se termină sau după ce o oprești.'); block = true; }
+      else if (form.mode === 'blender' && !online.some(p => p.gpuRender)) {
+        notice = h('div', { class: 'n-notice n-notice--amber' }, h('span', null, h('strong', null, 'Niciun PC cu Blender GPU online. '),
+          'Pornește provider.js cu --vram pe un PC cu placă NVIDIA și Blender, sau alege un mod CPU.'));
+        block = true;
+      } else if (last && !online.length) {
+        notice = h('div', { class: 'n-notice n-notice--amber' }, h('span', null, h('strong', null, 'Niciun PC furnizor online. '), 'Lucrarea ar aștepta în coadă până se conectează unul.'));
+      }
+      fill($('formNotice'), ...(notice ? [notice] : []));
+      $('formNotice').hidden = !notice;
+      $('submit').disabled = !v.ok || block || submitting;
+      $('submit').textContent = submitting ? 'Se pornește…' : 'Pornește lucrarea';
+    }
+
+    $('form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const v = validate();
+      if (!v.ok || submitting) return;
+      submitting = true;
+      submitError = '';
+      updateForm();
+      try {
+        const mode = form.mode;
+        await api('/api/job', { method: 'POST', body: JSON.stringify({
+          mode, width: v.nums.width, height: v.nums.height,
+          iterations: mode === 'fractal' ? v.nums.quality : undefined,
+          samples: mode !== 'fractal' ? v.nums.quality : undefined,
+          frames: mode === 'blender' ? v.nums.frames : undefined
+        }) });
+        packet('job');
+        packet('m-job');
+        announce('Lucrarea a pornit.');
+        await refresh(true);
+        if (!wide.matches) $('n-coord').scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      } catch (error) {
+        submitError = error.message;
+      } finally {
+        submitting = false;
+        updateForm();
+      }
+    });
+
+    async function cancelJob() {
+      $('cancel').disabled = $('pillStop').disabled = true;
+      try { await api('/api/cancel', { method: 'POST' }); await refresh(true); }
+      catch (error) { submitError = error.message; updateForm(); }
+      finally { $('cancel').disabled = $('pillStop').disabled = false; }
+    }
+    $('cancel').addEventListener('click', cancelJob);
+    $('pillStop').addEventListener('click', cancelJob);
+
+    // ========================================================= 02 coordinator
+
+    const STATUS = {
+      running: { text: 'În curs', tone: 'lime', live: true },
+      done: { text: 'Finalizată', tone: 'lime' },
+      cancelled: { text: 'Oprită', tone: 'amber' },
+      error: { text: 'Eroare', tone: 'coral' }
+    };
+
+    function badge(tone, text, live) {
+      return h('span', { class: `n-badge n-badge--${tone}` }, live || tone !== 'outline' ? h('span', { class: `n-dot${live ? ' n-dot--live' : ''}`, 'aria-hidden': 'true' }) : null, text);
+    }
+    function stat(label, value, hint) {
+      return h('div', { class: 'n-stat' }, h('span', { class: 'n-stat__label' }, label), h('span', { class: 'n-stat__value' }, value), hint ? h('span', { class: 'n-stat__hint' }, hint) : null);
+    }
+
+    function renderCoord() {
+      const job = last.job;
+      $('coordHost').textContent = `rulează pe acest PC · ${location.host}`;
+      $('n-coord').classList.toggle('is-live', job?.status === 'running');
+      $('coordActions').hidden = job?.status !== 'running';
+      if (!job) {
+        fill($('coordBadge'), badge('outline', 'Așteaptă'));
+        fill($('coordBody'), h('div', { class: 'cb-idle' },
+          h('b', null, 'Coada e goală.'),
+          h('p', null, 'Când pornești o lucrare, o taie aici în sarcini și le dă PC-urilor pe măsură ce se eliberează.')));
+        return;
+      }
+      const mode = MODES[job.mode] || MODES.fractal;
+      const status = STATUS[job.status] || { text: job.status, tone: 'outline' };
+      fill($('coordBadge'), badge(status.tone, status.text, status.live));
+
+      const elapsed = (job.finishedAt || Date.now()) - job.startedAt;
+      const flight = job.tiles.filter(t => t.status === 'assigned').length;
+      const names = [];
+      const doneBy = new Map(), flightBy = new Map();
+      for (const t of job.tiles) {
+        if (!t.provider || (t.status !== 'done' && t.status !== 'assigned')) continue;
+        const name = nameOf(t.provider);
+        if (!names.includes(name)) names.push(name);
+        const map = t.status === 'done' ? doneBy : flightBy;
+        map.set(name, (map.get(name) || 0) + 1);
+      }
+      const rate = elapsed > 2000 && job.done ? job.done / (elapsed / 60000) : null;
+      const cpu = job.mode !== 'blender';
+      const pct = job.total ? (job.done / job.total) * 100 : 0;
+
+      fill($('coordBody'), 
+        h('p', { class: 'cb-spec' }, `${mode.title} · ${job.width} × ${job.height} px · ${job.mode === 'fractal' ? `${fmt(job.iterations)} iterații` : `${fmt(job.samples)} mostre`}`),
+        h('div', { class: 'cb-figs' },
+          h('div', { class: 'cb-big' }, h('b', null, fmt(job.done)), h('span', null, `din ${plural(job.total, mode.one, mode.many)}`)),
+          h('div', { class: 'cb-pct' }, `${fmt(pct)} %`)),
+        h('div', { class: 'cb-queue', role: 'img', 'aria-label': `${job.done} terminate, ${flight} în lucru, ${job.total - job.done - flight} în coadă` },
+          names.map(n => doneBy.get(n) ? h('i', { 'data-pc': n, style: { '--c': colorFor(n), width: `${(doneBy.get(n) / job.total) * 100}%` } }) : null),
+          names.map(n => flightBy.get(n) ? h('i', { class: 'is-flight', 'data-pc': n, style: { '--c': colorFor(n), width: `${(flightBy.get(n) / job.total) * 100}%` } }) : null)),
+        h('ul', { class: 'cb-legend' },
+          names.map(n => h('li', { 'data-pc': n, style: { '--c': colorFor(n) } },
+            h('span', { class: 'cb-legend__name' }, n),
+            h('span', { class: 'cb-legend__v' }, `${fmt(doneBy.get(n) || 0)} gata${flightBy.get(n) ? ` · ${fmt(flightBy.get(n))} în lucru` : ''}`))),
+          job.total - job.done - flight > 0 ? h('li', { class: 'is-rest' }, h('span', null, 'În coadă'), h('span', { class: 'cb-legend__v' }, fmt(job.total - job.done - flight))) : null),
+        h('div', { class: 'cb-stats' },
+          stat(job.status === 'running' ? 'Timp scurs' : 'Timp total', duration(elapsed)),
+          stat('Ritm', rate == null ? '–' : `${fmt(rate, rate < 10 ? 1 : 0)} ${cpu ? 'benzi' : 'cadre'}/min`),
+          stat('Cost simulat', `${fmt(job.costRon, 4)} RON`, 'tarife de demo, nu prețuri reale'),
+          stat('Energie estimată', `${fmt(job.energyKwh, 5)} kWh`, 'din puterea introdusă la pornire')),
+        job.error ? h('div', { class: 'n-notice n-notice--coral', role: 'alert' }, h('span', null, h('strong', null, 'Eroare de randare. '), job.error)) : null);
+    }
+
+    // ======================================================= 03 provider PCs
+
+    const pcCards = new Map(); // provider id -> card element
+
+    function renderPcs() {
+      const shown = visibleProviders();
+      const online = shown.filter(p => p.online);
+      const job = last.job;
+      const running = job?.status === 'running';
+      for (const p of last.providers) colorFor(p.name);
+      $('pcsCount').textContent = shown.length
+        ? `${online.length} din ${shown.length} online · ${plural(online.reduce((s, p) => s + p.slots, 0), 'slot', 'sloturi')} CPU`
+        : 'niciunul conectat';
+
+      if (!shown.length) {
+        for (const card of pcCards.values()) card.remove();
+        pcCards.clear();
+        const port = location.port || (location.protocol === 'https:' ? '443' : '80');
+        if (!$('pcEmpty')) {
+          fill($('pcList'), h('div', { class: 'cb-node', id: 'pcEmpty' }, h('div', { class: 'cb-empty' },
+            h('p', null, 'Niciun PC furnizor conectat încă. Pe fiecare PC furnizor, din folderul proiectului:'),
+            h('code', { class: 'n-code' }, `node provider.js --server http://ADRESA-IP:${port} \\\n  --token COD --name PC-1 --slots 4`),
+            h('p', { class: 'n-meta' }, 'ADRESA-IP e adresa IPv4 a acestui PC, iar COD e codul afișat de server.js. Pentru randare GPU adaugă --gpu "RTX …" --vram 8.'))));
+        }
+        return;
+      }
+      $('pcEmpty')?.remove();
+
+      const keep = new Set(shown.map(p => p.id));
+      for (const [id, card] of pcCards) if (!keep.has(id)) { card.remove(); pcCards.delete(id); }
+
+      shown.forEach((p, index) => {
+        let card = pcCards.get(p.id);
+        if (!card) {
+          card = h('article', { class: 'cb-node cb-pc', 'data-link': `pc:${p.id}`, 'data-pc': p.name },
+            h('i', { class: 'sock sock--l d', id: `s-pc-${p.id}`, 'aria-hidden': 'true' }),
+            h('div', { class: 'cb-node__head' }), h('div', { class: 'cb-pc__body' }));
+          pcCards.set(p.id, card);
+        }
+        if ($('pcList').children[index] !== card) $('pcList').insertBefore(card, $('pcList').children[index] || null);
+
+        const holding = running ? tilesBy(job, p.id, 'assigned') : [];
+        const working = p.online && holding.length > 0;
+        const color = colorFor(p.name);
+        card.style.setProperty('--c', color);
+        card.style.setProperty('--sc', color);
+        card.dataset.pc = p.name;
+        card.classList.toggle('is-off', !p.online);
+        card.classList.toggle('is-working', working);
+        card.querySelector('.sock').classList.toggle('is-on', working);
+
+        fill(card.querySelector('.cb-node__head'), 
+          h('span', { class: 'cb-pc__dot', 'aria-hidden': 'true' }),
+          h('h3', { class: 'cb-pc__name' }, p.name),
+          !p.online ? badge('outline', 'Offline') : working ? badge('lime', 'Lucrează', true) : badge('outline', 'Liber'),
+          h('span', { class: 'cb-node__aside cb-pc__count', title: 'Sarcini terminate de la conectare' }, h('b', null, fmt(p.completed)), h('span', null, 'terminate')));
+
+        const contrib = job?.contributions?.[p.name];
+        const unit = job?.mode === 'blender' ? ['cadrul', 'cadrele'] : ['banda', 'benzile'];
+        const label = i => job.mode === 'blender' ? String(job.tiles[i].frame + 1) : `${job.tiles[i].y}–${job.tiles[i].y + job.tiles[i].rows - 1}`;
+        let work;
+        if (working) {
+          work = job.mode === 'blender'
+            ? [h('span', null, 'Randează '), h('b', null, `${holding.length === 1 ? unit[0] : unit[1]} ${list(holding.slice(0, 4).map(label))}`)]
+            : [h('span', null, 'Calculează '), h('b', null, plural(holding.length, 'bandă', 'benzi')), h('span', { class: 'n-meta' }, ` · rândurile ${label(holding[0])}${holding.length > 1 ? ' …' : ''}`)];
+        } else if (contrib) {
+          work = [h('span', null, 'În lucrarea curentă: '), h('b', null, `${plural(contrib.tiles, job.mode === 'blender' ? 'cadru' : 'bandă', job.mode === 'blender' ? 'cadre' : 'benzi')}`),
+            h('span', { class: 'n-meta' }, ` · medie ${shortMs(contrib.computeMs / contrib.tiles)}${contrib.gpuBackend ? ` · ${contrib.gpuBackend}` : ''}`)];
+        }
+        fill(card.querySelector('.cb-pc__body'), 
+          h('p', { class: 'cb-pc__spec' }, [p.cpu, p.ramGb ? `${fmt(p.ramGb)} GB RAM` : null].filter(Boolean).join(' · ')),
+          h('p', { class: 'cb-pc__spec' }, [p.gpu && p.gpu !== 'Nespecificat' ? p.gpu : 'GPU nespecificat', p.vramGb ? `${fmt(p.vramGb)} GB VRAM` : null].filter(Boolean).join(' · ')),
+          h('div', { class: 'cb-pc__tags' },
+            h('span', { class: 'n-badge' }, `${plural(p.slots, 'slot', 'sloturi')} CPU`),
+            p.gpuRender ? h('span', { class: 'n-badge n-badge--lime' }, 'Blender GPU') : h('span', { class: 'n-badge n-badge--outline' }, 'Fără Blender GPU'),
+            p.rateRon || p.watts ? h('span', { class: 'n-badge n-badge--outline', title: 'Ipoteze introduse la pornire, nu măsurători sau prețuri reale' },
+              `${fmt(p.rateRon, p.rateRon % 1 ? 1 : 0)} RON/h · ${fmt(p.watts)} W, demo`) : null),
+          work ? h('p', { class: 'cb-pc__work' }, work) : null);
+      });
+    }
+
+    // ============================================================ 04 result
+
+    const res = { jobId: null, urls: [], frames: [], fetching: 0, queue: [], queued: new Set(), preview: { done: -1, busy: false, url: null }, full: null, timer: null, frame: 0, lastFrame: null, plain: false };
+
+    function resetResult() {
+      if (res.timer) clearInterval(res.timer);
+      for (const url of [...res.urls, ...res.frames.filter(Boolean), res.preview.url, res.full].filter(Boolean)) URL.revokeObjectURL(url);
+      Object.assign(res, { jobId: null, urls: [], frames: [], fetching: 0, queue: [], queued: new Set(), preview: { done: -1, busy: false, url: null }, full: null, timer: null, frame: 0, lastFrame: null });
+      $('resultBody').replaceChildren();
+      $('resultTools').replaceChildren();
+    }
+
+    function renderResult() {
+      const job = last.job;
+      if (!job) {
+        if (res.jobId !== 'none') {
+          resetResult();
+          res.jobId = 'none';
+          fill($('resultBody'), h('div', { class: 'cb-result-empty' },
+            h('div', null, h('b', null, 'Aici se compune rezultatul.'),
+              h('p', null, 'Pe măsură ce PC-urile termină sarcini, vezi ce bucată a făcut fiecare.'))));
+        }
+        return;
+      }
+      if (res.jobId !== job.id) { resetResult(); res.jobId = job.id; job.mode === 'blender' ? buildFrames(job) : buildImage(job); }
+      job.mode === 'blender' ? updateFrames(job) : updateImage(job);
+    }
+
+    // CPU: the image as it is assembled, with one band per task coloured by the PC that computed it.
+    function buildImage(job) {
+      const stage = h('div', { class: `cb-stage${res.plain ? ' is-plain' : ''}`, id: 'stage', style: { 'aspect-ratio': `${job.width} / ${job.height}` } },
+        h('img', { id: 'stageImg', alt: `${MODES[job.mode].title} în curs de compunere` }),
+        h('div', { class: 'cb-bands', 'aria-hidden': 'true' }, job.tiles.map((t, i) =>
+          h('i', { class: 'cb-band is-pending', id: `band-${i}`, style: { top: `${(t.y / job.height) * 100}%`, height: `${(t.rows / job.height) * 100}%` } }))));
+      const toggle = h('label', { class: 'n-toggle' },
+        h('input', { type: 'checkbox', checked: !res.plain, onchange: e => { res.plain = !e.target.checked; $('stage').classList.toggle('is-plain', res.plain); } }),
+        h('span', { class: 'n-switch', 'aria-hidden': 'true' }), 'Arată PC-ul pe fiecare bandă');
+      fill($('resultTools'), toggle, h('a', { class: 'n-btn n-btn--sm', id: 'download', hidden: true }, 'Descarcă PNG'));
+      fill($('resultBody'), stage);
+    }
+
+    function updateImage(job) {
+      job.tiles.forEach((t, i) => {
+        const band = $(`band-${i}`);
+        if (!band) return;
+        band.className = `cb-band is-${t.status}`;
+        if (t.provider) { const n = nameOf(t.provider); band.style.setProperty('--c', colorFor(n)); band.dataset.pc = n; }
+        else delete band.dataset.pc;
+      });
+      if (job.status === 'done' && !res.full) {
+        res.full = 'loading';
+        api('/api/image').then(r => r.blob()).then(blob => {
+          if (res.jobId !== job.id) return;
+          res.full = URL.createObjectURL(blob);
+          $('stageImg').src = res.full;
+          $('stageImg').alt = `${MODES[job.mode].title}, compusă din ${plural(job.total, 'bandă', 'benzi')} calculate de PC-urile furnizoare`;
+          Object.assign($('download'), { href: res.full, download: `compute-bridge-${job.mode}.png`, hidden: false });
+        }).catch(() => { res.full = null; });
+      } else if (job.status !== 'done' && job.done !== res.preview.done && !res.preview.busy) {
+        res.preview.busy = true;
+        const done = job.done;
+        api('/api/preview').then(r => r.blob()).then(blob => {
+          if (res.jobId !== job.id || res.full) return;
+          const old = res.preview.url;
+          res.preview.url = URL.createObjectURL(blob);
+          res.preview.done = done;
+          $('stageImg').src = res.preview.url;
+          if (old) setTimeout(() => URL.revokeObjectURL(old), 2000);
+        }).catch(() => {}).finally(() => { res.preview.busy = false; });
+      }
+    }
+
+    // GPU: one cell per frame, filled with the frame as soon as its PC sends it back.
+    function buildFrames(job) {
+      const stage = h('div', { class: 'cb-stage', id: 'stage', style: { 'aspect-ratio': `${job.width} / ${job.height}` } },
+        h('img', { id: 'stageImg', alt: '' }), h('span', { class: 'cb-stage__cap', id: 'stageCap' }));
+      const cells = h('div', { class: 'cb-cells', style: { '--ar': `${job.width} / ${job.height}` } }, job.tiles.map((t, i) =>
+        h('button', { type: 'button', class: 'cb-cell is-pending', id: `cell-${i}`, style: { 'aspect-ratio': `${job.width} / ${job.height}` }, 'aria-label': `Cadrul ${i + 1}, în coadă`, onclick: () => pickFrame(i) },
+          h('span', { class: 'cb-cell__n' }, String(i + 1)))));
+      fill($('resultTools'), h('a', { class: 'n-btn n-btn--sm', id: 'download', hidden: true }, 'Descarcă cadrul'));
+      fill($('resultBody'), stage, h('div', { class: 'cb-player', id: 'player', hidden: true }), cells);
+    }
+
+    function updateFrames(job) {
+      job.tiles.forEach((t, i) => {
+        const cell = $(`cell-${i}`);
+        if (!cell) return;
+        const n = t.provider ? nameOf(t.provider) : null;
+        cell.classList.remove('is-pending', 'is-assigned', 'is-done');
+        cell.classList.add(`is-${t.status}`);
+        if (n) { cell.style.setProperty('--c', colorFor(n)); cell.dataset.pc = n; } else delete cell.dataset.pc;
+        cell.setAttribute('aria-label', `Cadrul ${i + 1}, ${t.status === 'done' ? `terminat de ${n}` : t.status === 'assigned' ? `la ${n}` : 'în coadă'}`);
+        if (t.status === 'done' && !res.frames[i] && !res.queued.has(i)) { res.queued.add(i); res.queue.push(i); }
+      });
+      pumpFrames(job);
+      if (job.status === 'done' && res.frames.filter(Boolean).length === job.total && !$('player').childElementCount) startPlayer(job);
+      else if (job.status !== 'done' && res.lastFrame != null && res.frames[res.lastFrame]) showFrame(res.lastFrame, job, false);
+    }
+
+    function pumpFrames(job) {
+      while (res.fetching < 4 && res.queue.length) {
+        const i = res.queue.shift();
+        res.fetching++;
+        api(`/api/frame/${i}`).then(r => r.blob()).then(blob => {
+          if (res.jobId !== job.id) return;
+          res.frames[i] = URL.createObjectURL(blob);
+          const cell = $(`cell-${i}`);
+          if (cell && !cell.querySelector('img')) cell.prepend(h('img', { src: res.frames[i], alt: '' }));
+          if (last?.job?.status !== 'done') { res.lastFrame = i; showFrame(i, last.job, false); }
+        }).catch(() => { res.queued.delete(i); }).finally(() => {
+          res.fetching--;
+          if (res.jobId === job.id && last?.job) { pumpFrames(last.job); if (last.job.status === 'done') updateFrames(last.job); }
+        });
+      }
+    }
+
+    function showFrame(i, job, fromPlayer) {
+      if (!res.frames[i] || !job) return;
+      res.frame = i;
+      $('stageImg').src = res.frames[i];
+      $('stageImg').alt = `Cadrul ${i + 1} din animație`;
+      const t = job.tiles[i], n = t?.provider ? nameOf(t.provider) : null;
+      $('stageCap').textContent = `Cadrul ${i + 1}${n ? ` · ${n}` : ''}${!fromPlayer && job.status === 'running' ? ' · ultimul terminat' : ''}`;
+      $('stageCap').style.setProperty('--c', n ? colorFor(n) : 'var(--n-text-3)');
+      Object.assign($('download'), { href: res.frames[i], download: `compute-bridge-cadru-${String(i + 1).padStart(2, '0')}.png`, hidden: false });
+      for (const cell of document.querySelectorAll('.cb-cell.is-current')) cell.classList.remove('is-current');
+      $(`cell-${i}`)?.classList.add('is-current');
+      const scrub = $('scrub');
+      if (scrub) { scrub.value = i; setFill(scrub); $('frameCount').textContent = `Cadrul ${i + 1} / ${job.total}`; }
+    }
+
+    function pickFrame(i) {
+      if (!res.frames[i] || !last?.job) return;
+      stopPlayer();
+      showFrame(i, last.job, true);
+    }
+
+    function stopPlayer() {
+      if (res.timer) clearInterval(res.timer);
+      res.timer = null;
+      if ($('play')) $('play').textContent = 'Redă';
+    }
+
+    function startPlayer(job) {
+      const n = job.total;
+      const fps = h('input', { class: 'n-range', id: 'fps', type: 'range', min: 1, max: 30, value: 12, 'aria-label': 'Viteza de redare, cadre pe secundă' });
+      const fpsOut = h('span', { class: 'n-num' });
+      const scrub = h('input', { class: 'n-range', id: 'scrub', type: 'range', min: 0, max: n - 1, value: 0, 'aria-label': 'Cadrul afișat' });
+      const play = h('button', { class: 'n-btn n-btn--sm', id: 'play', type: 'button' }, 'Redă');
+      const run = () => {
+        if (res.timer) clearInterval(res.timer);
+        res.timer = setInterval(() => showFrame((res.frame + 1) % n, last?.job?.id === job.id ? last.job : job, true), 1000 / Number(fps.value));
+        play.textContent = 'Pauză';
+      };
+      play.addEventListener('click', () => (res.timer ? stopPlayer() : run()));
+      scrub.addEventListener('input', () => { stopPlayer(); showFrame(Number(scrub.value), job, true); });
+      fps.addEventListener('input', () => { fpsOut.textContent = `${fps.value} cadre/s`; setFill(fps); if (res.timer) run(); });
+      fpsOut.textContent = `${fps.value} cadre/s`;
+      setFill(fps);
+      fill($('player'), play,
+        h('label', { class: 'cb-player__scrub' }, h('span', { class: 'n-sr-only' }, 'Cadrul afișat'), scrub, h('span', { class: 'cb-player__count n-num', id: 'frameCount' })),
+        h('div', { class: 'cb-player__fps' }, fps, fpsOut));
+      $('player').hidden = false;
+      showFrame(0, job, true);
+      if (!reducedMotion) run();
+    }
+
+    // ================================================================ 05 log
+
+    function log({ text, sub, color, tone }) {
+      const el = $('log');
+      const stick = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+      el.append(h('li', { class: tone ? `is-${tone}` : null },
+        h('span', { class: 'cb-log__dot', style: color ? { '--c': color } : null, 'aria-hidden': 'true' }),
+        h('div', null, h('p', { class: 'cb-log__text' }, text), sub ? h('p', { class: 'cb-log__sub' }, sub) : null),
+        h('time', null, clock())));
+      while (el.children.length > 150) el.firstChild.remove();
+      if (stick) el.scrollTop = el.scrollHeight;
+    }
+    const b = text => h('b', null, text);
+
+    // ===================================================== events and packets
+
+    let prevProviders = null, prevJob = null;
+
+    function jobSpec(job) {
+      return `${job.width} × ${job.height} px · ${job.mode === 'blender' ? plural(job.frameCount, 'cadru', 'cadre') : plural(job.total, 'bandă', 'benzi')}`;
+    }
+
+    function diffEvents(state) {
+      const job = state.job;
+      const first = prevProviders === null;
+      if (first) {
+        const online = state.providers.filter(p => p.online).length;
+        log({ text: [b('Conectat la coordonator')], color: 'var(--n-accent)',
+          sub: `${plural(online, 'PC furnizor', 'PC-uri furnizoare')} online${job ? ` · ${job.status === 'running' ? 'o lucrare e în curs' : `ultima lucrare: ${(STATUS[job.status]?.text || job.status).toLowerCase()}`}` : ''}` });
+      } else {
+        for (const p of state.providers) {
+          const was = prevProviders.get(p.id);
+          if (was === undefined && p.online) log({ text: [b(p.name), ' s-a conectat'], color: colorFor(p.name), sub: `${plural(p.slots, 'slot', 'sloturi')} CPU · ${p.gpuRender ? 'randare Blender GPU' : 'fără Blender GPU'}` });
+          else if (was === true && !p.online) log({ text: [b(p.name), ' nu mai răspunde'], color: colorFor(p.name), tone: 'warn', sub: 'Sarcinile lui revin în coadă după expirarea timpului limită.' });
+          else if (was === false && p.online) log({ text: [b(p.name), ' a revenit online'], color: colorFor(p.name) });
+        }
+      }
+      prevProviders = new Map(state.providers.map(p => [p.id, p.online]));
+
+      if (!job) { prevJob = null; return; }
+      if (!prevJob || prevJob.id !== job.id) {
+        if (!first) log({ text: [b('Lucrare pornită'), ` · ${MODES[job.mode]?.title || job.mode}`], color: 'var(--n-accent)', sub: jobSpec(job) });
+        // A fresh job is diffed against an empty queue; a job found on first load is not, to avoid a burst of old events.
+        prevJob = { id: job.id, status: first ? job.status : 'running', tiles: first ? job.tiles : job.tiles.map(() => ({ status: 'pending', provider: null })) };
+      }
+
+      const took = new Map(), finished = new Map();
+      job.tiles.forEach((t, i) => {
+        const before = prevJob.tiles[i] || { status: 'pending', provider: null };
+        if (t.status === 'assigned' && (before.status !== 'assigned' || before.provider !== t.provider)) (took.get(t.provider) || took.set(t.provider, []).get(t.provider)).push(i);
+        if (t.status === 'done' && before.status !== 'done') (finished.get(t.provider) || finished.set(t.provider, []).get(t.provider)).push(i);
+      });
+
+      const gpu = job.mode === 'blender';
+      const frameList = ids => `${ids.length === 1 ? 'cadrul' : 'cadrele'} ${list(ids.slice(0, 5).map(i => String(job.tiles[i].frame + 1)))}${ids.length > 5 ? ' …' : ''}`;
+      let logged = false;
+      for (const [pid, ids] of took) {
+        const color = colorFor(nameOf(pid));
+        ids.slice(0, 3).forEach((_, k) => packet(`pc-${pid}`, { color, delay: k * 170 }));
+        packet('m-pcs', { color });
+        if (gpu && !finished.has(pid)) { log({ text: [b(nameOf(pid)), ` a preluat ${frameList(ids)}`], color }); logged = true; }
+      }
+      for (const [pid, ids] of finished) {
+        const name = nameOf(pid), color = colorFor(name);
+        ids.slice(0, 3).forEach((_, k) => packet(`pc-${pid}`, { color, reverse: true, delay: 250 + k * 170 }));
+        if (gpu) {
+          res.lastFrame = ids[ids.length - 1];
+          const next = took.get(pid);
+          const backend = job.contributions[name]?.gpuBackend;
+          log({ text: [b(name), ` a terminat ${frameList(ids)}`], color, sub: [backend, next ? `a preluat ${frameList(next)}` : null].filter(Boolean).join(' · ') || null });
+        } else {
+          const total = job.contributions[name]?.tiles || 0;
+          const holding = job.tiles.filter(t => t.provider === pid && t.status === 'assigned').length;
+          log({ text: [b(name), ` a terminat ${plural(ids.length, 'bandă', 'benzi')}`], color, sub: `${plural(total, 'bandă', 'benzi')} în total${holding ? ` · ${fmt(holding)} în lucru` : ''}` });
+        }
+        logged = true;
+      }
+      if (finished.size) { packet('res', { delay: 600 }); packet('m-res', { delay: 600 }); }
+      if (logged) packet('log', { delay: 300 });
+
+      if (prevJob.status === 'running' && job.status !== 'running') {
+        const took = duration(job.finishedAt - job.startedAt);
+        const who = Object.entries(job.contributions).map(([n, c]) => `${n}: ${plural(c.tiles, gpu ? 'cadru' : 'bandă', gpu ? 'cadre' : 'benzi')}`).join(' · ');
+        if (job.status === 'done') {
+          log({ text: [b('Lucrare finalizată'), ` în ${took}`], color: 'var(--n-accent)', sub: who || null });
+          announce(`Lucrarea s-a terminat în ${took}.`);
+          flashPill(`Gata în ${took}`, `${plural(job.total, gpu ? 'cadru' : 'bandă', gpu ? 'cadre' : 'benzi')} · ${plural(Object.keys(job.contributions).length, 'PC', 'PC-uri')}`);
+        } else if (job.status === 'error') {
+          log({ text: [b('Lucrarea s-a oprit cu o eroare')], color: 'var(--n-danger)', tone: 'error', sub: job.error });
+          announce('Lucrarea s-a oprit cu o eroare.');
+        } else {
+          log({ text: [b('Lucrare oprită'), ` după ${took}`], color: 'var(--n-warn)', tone: 'warn', sub: `${fmt(job.done)} din ${fmt(job.total)} terminate` });
+          announce('Lucrarea a fost oprită.');
+        }
+      }
+      prevJob = { id: job.id, status: job.status, tiles: job.tiles };
+    }
+
+    // =============================================================== wires
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const wires = new Map(); // id -> { base, flow, spec }
+    let hot = null;
+
+    function wireSpecs() {
+      const job = last?.job;
+      const running = job?.status === 'running';
+      const specs = [
+        { id: 'c1', from: 's-c1', to: 's-form-t', note: true, link: 'form', layout: 'd' },
+        { id: 'c2', from: 's-c2', to: 's-coord-t', note: true, link: 'coord', layout: 'd' },
+        { id: 'c3', from: 's-c3', to: 's-pcs-t', note: true, link: 'pcs', layout: 'd' },
+        { id: 'job', from: 's-form-r', to: 's-coord-l', kind: 'h', on: running, layout: 'd', link: 'form' },
+        { id: 'res', from: 's-coord-b', to: 's-result-t', on: running, layout: 'd' },
+        { id: 'log', from: 's-pcs-b', to: 's-log-t', on: running, layout: 'd' },
+        { id: 'm-job', from: 's-form-b', to: 's-coord-t', on: running, layout: 'm' },
+        { id: 'm-pcs', from: 's-coord-b', to: 's-pcs-t', on: running, layout: 'm' },
+        { id: 'm-res', from: 's-pcs-b', to: 's-result-t', on: running, layout: 'm' }
+      ];
+      for (const p of visibleProviders()) {
+        specs.push({ id: `pc-${p.id}`, from: 's-coord-r', to: `s-pc-${p.id}`, kind: 'h', layout: 'd', link: `pc:${p.id}`,
+          color: colorFor(p.name), on: running && p.online && job.tiles.some(t => t.provider === p.id && t.status === 'assigned'), off: !p.online });
+      }
+      return specs;
+    }
+
+    function point(el, box) {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2 - box.left, y: r.top + r.height / 2 - box.top };
+    }
+    function curve(a, z, kind) {
+      if (kind === 'h') {
+        const c = Math.max(36, Math.abs(z.x - a.x) * 0.55);
+        return `M${a.x},${a.y} C${a.x + c},${a.y} ${z.x - c},${z.y} ${z.x},${z.y}`;
+      }
+      const c = Math.max(24, Math.abs(z.y - a.y) * 0.5);
+      return `M${a.x},${a.y} C${a.x},${a.y + c} ${z.x},${z.y - c} ${z.x},${z.y}`;
+    }
+
+    function drawWires() {
+      const board = $('board');
+      if ($('app').hidden || !last) return;
+      const desk = wide.matches;
+      // On the wide layout the result card spans two columns: put its input right under the coordinator's output.
+      const rt = $('s-result-t');
+      if (desk) {
+        const c = $('n-coord').getBoundingClientRect(), r = $('n-result').getBoundingClientRect();
+        rt.style.left = `${c.left + c.width / 2 - r.left - 6.5}px`;
+      } else rt.style.left = '';
+      const box = board.getBoundingClientRect();
+      const svg = $('wires');
+      const seen = new Set();
+      for (const spec of wireSpecs()) {
+        if (spec.layout !== (desk ? 'd' : 'm')) continue;
+        const a = $(spec.from), z = $(spec.to);
+        if (!a || !z || !a.offsetParent || !z.offsetParent) continue;
+        let w = wires.get(spec.id);
+        if (!w) {
+          const base = document.createElementNS(NS, 'path');
+          const flow = document.createElementNS(NS, 'path');
+          base.id = `w-${spec.id}`;
+          svg.prepend(flow);
+          svg.prepend(base);
+          w = { base, flow };
+          wires.set(spec.id, w);
+        }
+        w.spec = spec;
+        const d = curve(point(a, box), point(z, box), spec.kind);
+        w.base.setAttribute('d', d);
+        w.flow.setAttribute('d', d);
+        const isHot = hot && spec.link === hot;
+        w.base.setAttribute('class', `w${spec.note ? ' w--note' : ''}${spec.on ? ' is-on' : ''}${isHot ? ' is-hot' : ''}`);
+        w.flow.setAttribute('class', `wf${spec.on && !reducedMotion ? ' is-on' : ''}`);
+        w.base.style.opacity = spec.off ? '0.35' : '';
+        if (spec.color) { w.base.style.setProperty('--wc', spec.color); w.flow.style.setProperty('--wc', spec.color); }
+        seen.add(spec.id);
+      }
+      for (const [id, w] of wires) if (!seen.has(id)) { w.base.remove(); w.flow.remove(); wires.delete(id); }
+
+      // sockets light up with their wires
+      const job = last.job, running = job?.status === 'running';
+      const anyWorking = running && job.tiles.some(t => t.status === 'assigned');
+      for (const id of ['s-form-r', 's-coord-l', 's-coord-b', 's-result-t', 's-pcs-b', 's-log-t', 's-form-b', 's-coord-t', 's-pcs-t']) $(id).classList.toggle('is-on', running);
+      $('s-coord-r').classList.toggle('is-on', anyWorking);
+    }
+
+    let wiresQueued = false;
+    function scheduleWires() {
+      if (wiresQueued) return;
+      wiresQueued = true;
+      requestAnimationFrame(() => { wiresQueued = false; drawWires(); });
+    }
+
+    // A small light that travels along a wire: a task going out, or a result coming back.
+    function packet(id, { reverse = false, color = 'var(--n-accent)', delay = 0 } = {}) {
+      if (reducedMotion || document.hidden) return;
+      setTimeout(() => {
+        const w = wires.get(id);
+        if (!w || !w.base.isConnected) return;
+        const length = w.base.getTotalLength();
+        const dur = Math.min(1.5, Math.max(0.6, length / 380));
+        const dot = document.createElementNS(NS, 'circle');
+        dot.setAttribute('r', '3.4');
+        dot.setAttribute('class', 'pk');
+        dot.style.fill = color;
+        dot.style.color = color;
+        const motion = document.createElementNS(NS, 'animateMotion');
+        for (const [k, v] of Object.entries({ dur: `${dur}s`, begin: 'indefinite', fill: 'freeze', calcMode: 'spline', keyTimes: '0;1', keySplines: '0.45 0 0.2 1', keyPoints: reverse ? '1;0' : '0;1' })) motion.setAttribute(k, v);
+        const mpath = document.createElementNS(NS, 'mpath');
+        mpath.setAttribute('href', `#${w.base.id}`);
+        mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `#${w.base.id}`);
+        motion.append(mpath);
+        dot.append(motion);
+        $('wires').append(dot);
+        motion.beginElement();
+        setTimeout(() => dot.remove(), dur * 1000 + 80);
+      }, delay);
+    }
+
+    // Hover a text or a block: light up the wire between them. Hover a PC: dim the work of the others.
+    const focusStyle = document.head.appendChild(document.createElement('style'));
+    function setHot(key) {
+      if (key === hot) return;
+      hot = key;
+      for (const el of document.querySelectorAll('[data-link]')) el.classList.toggle('is-hot', el.dataset.link === key);
+      const pc = key?.startsWith('pc:') ? providerById(key.slice(3))?.name : null;
+      $('board').toggleAttribute('data-focus', Boolean(pc));
+      focusStyle.textContent = pc ? `.cb-board[data-focus] [data-pc]:not([data-pc="${CSS.escape(pc)}"]):not(.cb-pc) { opacity: 0.22; }` : '';
+      drawWires();
+    }
+    $('board').addEventListener('mouseover', e => setHot(e.target.closest('[data-link]')?.dataset.link || null));
+    $('board').addEventListener('mouseleave', () => setHot(null));
+    $('board').addEventListener('focusin', e => setHot(e.target.closest('[data-link]')?.dataset.link || null));
+
+    new ResizeObserver(scheduleWires).observe($('board'));
+    addEventListener('resize', scheduleWires);
+    wide.addEventListener('change', scheduleWires);
+    document.fonts?.ready.then(scheduleWires);
+
+    // ================================================================ pill
+
+    const SPIN = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'].map(c => c + '︎');
+    let spinIndex = 0, pillUntil = 0;
+    setInterval(() => {
+      if ($('pill').hidden || $('pill').classList.contains('is-done') || reducedMotion) return;
+      spinIndex = (spinIndex + 1) % SPIN.length;
+      $('spin').textContent = SPIN[spinIndex];
+    }, 120);
+
+    function flashPill(verb, meta) {
+      pillUntil = Date.now() + 7000;
+      $('pill').hidden = false;
+      $('pill').classList.add('is-done');
+      $('spin').textContent = '✻︎';
+      $('pillVerb').textContent = verb;
+      $('pillMeta').textContent = meta;
+      $('pillStop').hidden = true;
+    }
+
+    function updatePill() {
+      const job = last?.job;
+      if (job?.status === 'running') {
+        const mode = MODES[job.mode] || MODES.fractal;
+        const working = new Set(job.tiles.filter(t => t.status === 'assigned').map(t => t.provider)).size;
+        $('pill').hidden = false;
+        $('pill').classList.remove('is-done');
+        $('pillVerb').textContent = `${mode.verb}…`;
+        $('pillMeta').textContent = `${fmt(job.done)}/${fmt(job.total)} · ${duration(Date.now() - job.startedAt)} · ${working === 1 ? '1 PC lucrează' : `${fmt(working)} PC-uri lucrează`}`;
+        $('pillStop').hidden = false;
+        document.title = `${fmt(job.done)}/${fmt(job.total)} · Compute Bridge`;
+      } else {
+        if (Date.now() > pillUntil) $('pill').hidden = true;
+        document.title = 'Compute Bridge · NODE';
+      }
+    }
+
+    // ============================================================= polling
+
+    let lastOk = 0, refreshing = false;
+    function setConn(state) {
+      $('conn').dataset.state = state;
+      $('connText').textContent =
+        state === 'live' ? 'Live' :
+        state === 'connecting' ? 'Se conectează…' :
+        state === 'offline' ? (lastOk ? `Se reconectează · actualizat acum ${duration(Date.now() - lastOk)}` : 'Coordonatorul nu răspunde') :
+        'Neconectat';
+    }
+
+    function showGate(message) {
+      $('gate').hidden = false;
+      $('app').hidden = true;
+      $('changeToken').hidden = true;
+      $('pill').hidden = true;
+      $('gateError').textContent = message || '';
+      $('token').value = token;
+      setConn('none');
+      $('token').focus();
+    }
+    function showApp() {
+      $('gate').hidden = true;
+      $('app').hidden = false;
+      $('changeToken').hidden = false;
+    }
+
+    async function refresh(force) {
+      if (!token || (refreshing && !force)) return;
+      refreshing = true;
+      try {
+        const state = await (await api('/api/state')).json();
+        lastOk = Date.now();
+        last = state;
+        setConn('live');
+        if ($('app').hidden) showApp();
+        if (!form.touched && form.mode === 'blender' && !state.providers.some(p => p.online && p.gpuRender)) setMode('fractal');
+        renderPcs();
+        renderCoord();
+        renderResult();
+        updateForm();
+        updatePill();
+        drawWires();       // wires first, so new events can send packets along them
+        diffEvents(state);
+      } catch (error) {
+        if (error.status === 401) showGate('Codul de acces nu e corect. Copiază-l din nou din terminalul în care rulează server.js.');
+        else setConn('offline');
+      } finally {
+        refreshing = false;
+      }
+    }
+
+    $('gateForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const value = $('token').value.trim();
+      if (!value) { $('gateError').textContent = 'Lipește codul de acces.'; return; }
+      token = value;
+      store.set(TOKEN_KEY, token);
+      $('gateError').textContent = '';
+      setConn('connecting');
+      refresh(true);
+    });
+    $('changeToken').addEventListener('click', () => showGate(''));
+
+    buildForm();
+    if (token) { showApp(); setConn('connecting'); refresh(true); }
+    else showGate('');
+    setInterval(refresh, POLL_MS);
+  </script>
+</body>
+</html>

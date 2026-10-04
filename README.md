@@ -68,6 +68,20 @@ Pentru CPU, estimarea costului este `suma(timp pe slot × preț orar al PC-ului 
 
 **După actualizarea proiectului:** opriți `server.js` și ambele procese `provider.js`, faceți `git pull` pe toate cele trei PC-uri (sau descărcați din nou arhiva ZIP), apoi porniți serverul și furnizorii cu noul cod de acces. Versiunile vechi ale `provider.js` vor primi un mesaj de actualizare.
 
+## Interfața NODE (test)
+
+Pe lângă interfața originală de la `http://localhost:3000`, serverul oferă și `http://localhost:3000/node`. E aceeași funcționalitate, în designul NODE (prună și piersică), construită ca un editor de noduri: lucrarea, coordonatorul și fiecare PC furnizor sunt blocuri legate prin fire. Firul spre un PC se aprinde cât timp acesta are o sarcină. Sarcinile care pleacă și rezultatele care se întorc circulă pe fire ca puncte luminoase. Imaginea se compune bandă cu bandă (sau cadru cu cadru), colorată după PC-ul care a calculat-o, iar jurnalul înregistrează fiecare eveniment. Codul de acces se introduce la fel ca în interfața originală.
+
+Pentru test pe un singur calculator, fără rețea:
+
+```powershell
+node scripts/local.js
+```
+
+Comanda pornește coordonatorul și două PC-uri furnizoare locale pe CPU, apoi afișează linkul de deschis, care conține deja codul de acces. Cu `--gpu`, al doilea PC poate randa și cadre Blender, dacă PC-ul are Blender și o placă NVIDIA. `--port 3001` schimbă portul. Ambele procese folosesc același procesor, deci timpii nu reflectă două PC-uri reale.
+
+Pentru interfața nouă, `/api/state` trimite acum și `job.tiles`: starea fiecărei sarcini și PC-ul care o are. `/api/preview` întoarce imaginea parțială în modurile CPU. Fonturile sunt în `public/fonts`, sub licența SIL Open Font License.
+
 ## Limitele prototipului
 
 - Acceptă o singură lucrare activă. Rezultatul precedent rămâne vizibil până pornește o lucrare nouă.

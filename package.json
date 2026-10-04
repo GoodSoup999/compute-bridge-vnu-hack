@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "provider": "node provider.js"
+    "provider": "node provider.js",
+    "local": "node scripts/local.js"
   },
   "engines": { "node": ">=18" }
 }
