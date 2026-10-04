@@ -43,6 +43,15 @@ node provider.js --server http://192.168.1.10:3000 --token COD --name PC-5060 --
 
 Valorile `--slots`, `--watts` și `--rate` sunt configurabile. `slots` este numărul de lucrători CPU simultani. `watts` și `rate` sunt **ipoteze de demo**, nu măsurători sau prețuri reale.
 
+## Dacă furnizorul afișează `fetch failed`
+
+Înseamnă că PC-ul furnizor nu poate deschide conexiunea către server. Verificați în această ordine:
+
+1. Pe PC-ul coordonator, `node server.js` trebuie să rămână pornit și să afișeze adresa locală și codul de acces. Pe Arch Linux, rulați în alt terminal `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/`; rezultatul așteptat este `200`.
+2. Pe Arch Linux, `ss -lntp | grep ':3000'` trebuie să arate că Node ascultă pe `0.0.0.0:3000`. Confirmați adresa IPv4 actuală cu `ip -4 addr`.
+3. Pe Windows, rulați `Test-NetConnection ADRESA_IP -Port 3000`. Dacă `PingSucceeded` este `True`, dar `TcpTestSucceeded` este `False`, verificați firewall-ul de pe PC-ul coordonator și regulile rețelei pentru portul TCP 3000. Nu dezactivați firewall-ul integral.
+4. După ce `TcpTestSucceeded` este `True`, porniți din nou `provider.js` folosind adresa și codul de acces actuale.
+
 ## Demo pentru juriu
 
 1. Arătați cele două PC-uri conectate și resursele lor în interfață.
