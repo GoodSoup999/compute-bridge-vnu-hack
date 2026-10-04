@@ -1,6 +1,7 @@
 const crypto = require('node:crypto');
 const { Store } = require('./store');
 const { encodeRgbPng } = require('../lib/png');
+const { requirements } = require('../public/workload');
 
 const id = () => crypto.randomUUID();
 const secret = () => crypto.randomBytes(32).toString('hex');
@@ -104,7 +105,7 @@ class Hub {
         iterations: mode === 'fractal' ? integer(b.iterations, 100, 10000, 'Iterații') : null,
         samples: mode !== 'fractal' ? integer(b.samples, 8, 256, 'Mostre') : null,
         frames: mode === 'blender' ? integer(b.frames, 2, 48, 'Cadre') : null,
-        minRam: integer(b.minRam ?? 2, 1, 128, 'RAM necesar'), minVram: mode === 'blender' ? integer(b.minVram ?? 4, 2, 128, 'VRAM necesar') : 0,
+        ...requirements(b),
         createdAt: this.clock(), deadline: this.clock() + 86400000, tasks: [], spent: 0, escrow: 0, error: null };
       if (mode === 'blender' && j.width * j.height * j.frames > 30000000) fail('Maximum 30 milioane pixeli per animație');
       if (s.jobs.reduce((n, x) => n + x.width * x.height * (x.frames || 1), 0) + j.width * j.height * (j.frames || 1) > 250000000) fail('Stocarea hub-ului este ocupată; contactează administratorul', 503);

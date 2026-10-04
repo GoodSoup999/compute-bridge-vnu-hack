@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const { readAsset, serveShared } = require('./lib/assets');
 const { systemInfo } = require('./lib/system');
 const { RemoteAgent, hubUrl, request } = require('./lib/remote-agent');
+const { requirements } = require('./public/workload');
 
 const key = crypto.randomBytes(24).toString('hex');
 const dir = process.env.CB_DATA_DIR || path.join(process.env.LOCALAPPDATA || os.homedir(), 'ComputeBridge');
@@ -62,7 +63,7 @@ const ui = http.createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'" });
       return res.end(readAsset('public/hub.html').toString().replace('APP_KEY', key));
     }
-    if (req.method === 'GET' && ['/hub.js', '/hub.css'].includes(req.url)) { res.writeHead(200, { 'content-type': req.url.endsWith('.js') ? 'text/javascript' : 'text/css' }); return res.end(readAsset('public' + req.url)); }
+    if (req.method === 'GET' && ['/hub.js', '/workload.js', '/hub.css'].includes(req.url)) { res.writeHead(200, { 'content-type': req.url.endsWith('.js') ? 'text/javascript' : 'text/css' }); return res.end(readAsset('public' + req.url)); }
     if (serveShared(req, res)) return;
     if (req.headers['x-app-key'] !== key) return json(res, 403, { error: 'Acces local neautorizat' });
     if (req.url === '/local/state' && req.method === 'GET') {
@@ -109,7 +110,7 @@ const ui = http.createServer(async (req, res) => {
           if (!agent?.running) await configure({ ...config, market: false, hours: 1 });
           await startAgent();
         } else if (!device) await configure({ market: false, slots: 0, ramGb: 1, vramGb: 0, gpuRender: false });
-        await call('jobs', 'POST', { ...b, requestDeviceId: device.id });
+        await call('jobs', 'POST', { ...b, ...requirements(b), requestDeviceId: device.id });
       }
       else if (req.url === '/local/action') {
         const allowed = ['devices/stop', 'jobs/cancel', 'jobs/budget'];

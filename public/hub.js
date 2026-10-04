@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const key = document.querySelector('meta[name="cb-key"]').content;
-let current = null, initialized = false, refreshing = false, noticeTimer, images = [], frame = 0, playing = false, playerTimer;
+let current = null, initialized = false, noticeTimer, images = [], frame = 0, playing = false, playerTimer;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => Number(n || 0).toLocaleString('ro-RO', {maximumFractionDigits:3});
 function notice(text) { $('notice').textContent = text; $('notice').hidden = false; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => $('notice').hidden = true, 9000); }
@@ -18,6 +18,8 @@ const empty = text => `<div class="empty">${esc(text)}</div>`;
 function conditional() {
   const mode = $('jobMode').value;
   $('fractalSettings').hidden = mode !== 'fractal'; $('renderSettings').hidden = mode === 'fractal'; $('gpuSettings').hidden = mode !== 'blender';
+  const memory = ComputeWorkload.requirements(formData($('jobForm')));
+  $('requirements').textContent = `Memorie estimată automat: ${memory.minRam} GB RAM${memory.minVram ? ' · '+memory.minVram+' GB VRAM' : ''}. Alegem PC-uri compatibile. Estimarea include o marjă de siguranță.`;
 }
 function tab(name) {
   document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== name);
@@ -32,6 +34,19 @@ function providers(devices) {
   let html = '<option value="">Automat · toate PC-urile compatibile</option>' + devices.map(d=>`<option value="${esc(d.id)}">${esc(d.name)} · ${money(d.price)} cr/unitate</option>`).join('');
   if (selected && !devices.some(d=>d.id===selected)) html += `<option value="${esc(selected)}" disabled>${esc(oldName)} · indisponibil</option>`;
   if (el.innerHTML !== html) { el.innerHTML = html; el.value = selected; }
+}
+function renderJobs(jobs) {
+  const list = $('jobs');
+  const focused = document.activeElement;
+  const focusedJob = focused?.closest?.('.budgetForm')?.dataset.job;
+  const drafts = new Map([...list.querySelectorAll('.budgetForm')].map(f => [f.dataset.job, f.elements.amount.value]));
+  const html = jobs.map(j=>`<article class="card"><div class="jobhead"><strong>${esc(j.mode)}</strong><span class="badge">${esc(({running:'În lucru',done:'Terminat',cancelled:'Anulat',error:'Eroare',expired:'Expirat'})[j.status] || j.status)}</span></div><p class="sub">${esc(j.provider)} · ${j.execution==='hybrid' ? 'cu acest laptop':'remote'} · ${j.done}/${j.total} sarcini</p><div class="meter"><span style="width:${Math.round(j.done/j.total*100)}%"></span></div><p class="sub">${money(j.spent)} credite consumate · ${money(j.reserved)} rezervate<br>${esc(Object.entries(j.contributions).map(([n,v])=>n+': '+v).join(' · '))}</p>${j.waiting ? `<p class="hint">${esc(j.waiting)}</p>`:''}${j.error ? `<p class="hint">${esc(j.error)}</p>`:''}<div class="actions">${j.status==='running' ? `<button data-cancel="${j.id}">Anulează și restituie restul</button><form class="budgetForm" data-job="${j.id}"><div class="row"><label>Credite suplimentare<input name="amount" type="number" min="0.1" max="1000" step="0.1" value="10" required></label><button>Adaugă la buget</button></div></form>`:''}${j.status==='done' ? `<button class="primary" data-result="${j.id}" data-frames="${j.frames || 1}">Vezi rezultatul</button>`:''}</div></article>`).join('') || empty('Alege un PC disponibil și pornește prima lucrare.');
+  if (list.innerHTML === html) return;
+  list.innerHTML = html;
+  for (const form of list.querySelectorAll('.budgetForm')) {
+    if (drafts.has(form.dataset.job)) form.elements.amount.value = drafts.get(form.dataset.job);
+    if (form.dataset.job === focusedJob && focused.name === 'amount') form.elements.amount.focus({preventScroll:true});
+  }
 }
 function render(data) {
   current = data; const s = data.state;
@@ -61,11 +76,17 @@ function render(data) {
   providers(available);
   $('market').innerHTML = available.map(d=>deviceCard(d)).join('') || empty('Niciun PC oferit acum. Pe laptopul furnizor, deschide „Oferă PC-ul meu” și pornește oferta.');
   $('myDevices').innerHTML = s.devices.filter(d=>d.id===data.deviceId && d.market).map(d=>deviceCard(d,true)).join('') || empty('Acest PC nu este oferit pentru lucru.');
-  if (!$('jobs').contains(document.activeElement)) $('jobs').innerHTML = s.jobs.map(j=>`<article class="card"><div class="jobhead"><strong>${esc(j.mode)}</strong><span class="badge">${esc(({running:'În lucru',done:'Terminat',cancelled:'Anulat',error:'Eroare',expired:'Expirat'})[j.status] || j.status)}</span></div><p class="sub">${esc(j.provider)} · ${j.execution==='hybrid' ? 'cu acest laptop':'remote'} · ${j.done}/${j.total} sarcini</p><div class="meter"><span style="width:${Math.round(j.done/j.total*100)}%"></span></div><p class="sub">${money(j.spent)} credite consumate · ${money(j.reserved)} rezervate<br>${esc(Object.entries(j.contributions).map(([n,v])=>n+': '+v).join(' · '))}</p>${j.waiting ? `<p class="hint">${esc(j.waiting)}</p>`:''}${j.error ? `<p class="hint">${esc(j.error)}</p>`:''}<div class="actions">${j.status==='running' ? `<button data-cancel="${j.id}">Anulează și restituie restul</button><form class="budgetForm" data-job="${j.id}"><div class="row"><label>Credite suplimentare<input name="amount" type="number" min="0.1" max="1000" step="0.1" value="10" required></label><button>Adaugă la buget</button></div></form>`:''}${j.status==='done' ? `<button class="primary" data-result="${j.id}" data-frames="${j.frames || 1}">Vezi rezultatul</button>`:''}</div></article>`).join('') || empty('Alege un PC disponibil și pornește prima lucrare.');
+  renderJobs(s.jobs);
   $('ledger').innerHTML = s.ledger.map(l=>`<div class="ledgerrow"><span>${esc(l.reason)}<br><small class="sub">${new Date(l.at).toLocaleString('ro-RO')}</small></span><strong class="${l.delta>=0 ? 'positive':'negative'}">${l.delta>0 ? '+':''}${money(l.delta)}</strong></div>`).join('');
 }
-async function refresh() { if (refreshing) return; refreshing = true; try { render(await api('state')); } catch(e) { $('dot').className=''; $('connection').textContent=e.message; } finally { refreshing=false; } }
-async function perform(fn, message) { try { await fn(); if (message) notice(message); await refresh(); } catch(e) { notice(e.message); } }
+let refreshPromise;
+async function refresh(force = false) {
+  if (refreshPromise) { await refreshPromise; if (!force) return; }
+  const pending = (async () => { try { render(await api('state')); } catch(e) { $('dot').className=''; $('connection').textContent=e.message; } })();
+  refreshPromise = pending;
+  try { await pending; } finally { if (refreshPromise === pending) refreshPromise = null; }
+}
+async function perform(fn, message) { try { await fn(); if (message) notice(message); await refresh(true); } catch(e) { notice(e.message); } }
 $('authForm').addEventListener('submit',e=>{e.preventDefault();const intent=e.submitter.value;const b=formData(e.currentTarget);perform(async()=>{await api(intent,b);e.target.elements.password.value='';initialized=false;},'Conectat.');});
 $('logout').onclick=()=>perform(async()=>{await api('logout',{});initialized=false;tab('market');closeViewer();},'Ai ieșit din cont.');
 $('offerForm').onsubmit=e=>{e.preventDefault();perform(()=>api('device',formData(e.target)),'PC-ul tău este conectat și oferit în marketplace.');};
@@ -73,6 +94,7 @@ $('jobForm').onsubmit=e=>{e.preventDefault();perform(()=>api('job',formData(e.ta
 $('drain').onclick=()=>perform(()=>api('stop',{force:false}),'Oferta nu mai primește sarcini. Finalizăm lucrul curent.');
 $('force').onclick=()=>perform(()=>api('stop',{force:true}),'Oferta a fost oprită.');
 $('jobMode').onchange=conditional;
+$('jobForm').addEventListener('input', conditional);
 document.addEventListener('submit',e=>{if(e.target.matches('.budgetForm')){e.preventDefault();perform(()=>action('jobs/budget',{jobId:e.target.dataset.job,amount:Number(formData(e.target).amount)}),'Buget suplimentat.');}});
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;

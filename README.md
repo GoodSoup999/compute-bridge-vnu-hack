@@ -2,7 +2,7 @@
 
 Aplicație Windows pentru a oferi puterea PC-ului și a folosi PC-uri disponibile prin internet. Serverul echipei este inclus în configurația aplicației: utilizatorii nu introduc linkuri sau coduri.
 
-[Descarcă aplicația Windows 0.5](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.5.2-beta.1). Dezarhivează întregul folder și pornește **ComputeBridge.exe**. Clientul nu cere Node.js. Pentru GPU sunt necesare Blender și o placă NVIDIA.
+[Descarcă aplicația Windows 0.5](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.5.3-beta.1). Dezarhivează întregul folder și pornește **ComputeBridge.exe**. Clientul nu cere Node.js. Pentru GPU sunt necesare Blender și o placă NVIDIA.
 
 ## Fluxul principal
 
@@ -15,6 +15,8 @@ Aplicație Windows pentru a oferi puterea PC-ului și a folosi PC-uri disponibil
 Poți selecta un PC anume sau distribuirea automată între PC-urile compatibile. Lucrările disponibile sunt fractal CPU, ray tracing CPU și animație Blender GPU. Același cont poate oferi un PC și trimite lucrări. Pentru trimitere poți folosi doar resurse remote sau contribui și cu laptopul curent.
 
 ## Serverul echipei
+
+Cerințele RAM și VRAM se estimează automat pentru scenele incluse, fără completare manuală. CPU: 2 GB RAM; Blender: 4 GB RAM și 4 GB VRAM, cu 6 GB RAM peste un milion de pixeli per cadru. Sunt profiluri conservatoare de compatibilitate, nu măsurători exacte. Numărul de cadre și mostre mărește durata, fără multiplicarea memoriei per cadru. Lista lucrărilor actualizează progresul periodic și anularea după confirmarea serverului, păstrând bugetele în curs de editare.
 
 [Ghid de găzduire și actualizare](docs/HOSTING.md). Serverul se găzduiește pe PC-ul echipei, cu Node.js 24+ și un tunel HTTPS. Gazda trebuie să rămână pornită.
 

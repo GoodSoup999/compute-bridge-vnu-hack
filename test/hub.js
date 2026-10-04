@@ -39,10 +39,13 @@ async function main() {
     await assert.rejects(api(a.token,'jobs','POST',body),e=>e.status===400);
     agent=new RemoteAgent({server:base,token:db.token,config});await agent.start();
     assert.ok((await api(a.token,'state','GET')).devices.find(d=>d.id===db.id)?.online,'offer needs real heartbeat, no approval step');
-    await assert.rejects(api(a.token,'jobs','POST',{...body,minRam:8}),e=>e.status===400);
+    app.hub.write(s => { s.devices.find(d => d.id === db.id).ramGb = 1; });
+    await assert.rejects(api(a.token,'jobs','POST',{...body,minRam:0,minVram:0}),e=>e.status===400);
+    app.hub.write(s => { s.devices.find(d => d.id === db.id).ramGb = 4; });
     await assert.rejects(api(a.token,'jobs','POST',{...body,mode:'blender',samples:8,frames:2,minVram:4}),e=>e.status===400);
     assert.equal(app.hub.user(a.id).balance,100000,'failed compatibility cannot debit credits');
-    const rendered=await api(a.token,'jobs','POST',body);
+    const rendered=await api(a.token,'jobs','POST',{...body,minRam:128,minVram:128});
+    assert.equal(app.hub.s.jobs.find(j=>j.id===rendered.id).minRam,2,'server computes requirements instead of trusting manual inputs');
     for(let i=0;i<160;i++){if(app.hub.s.jobs.find(j=>j.id===rendered.id).status==='done')break;await sleep(100);}
     const done=app.hub.s.jobs.find(j=>j.id===rendered.id);assert.equal(done.status,'done',agent.message);
     assert.ok(done.spent>0);assert.equal(app.hub.user(a.id).balance,100000-done.spent);assert.equal(app.hub.user(b.id).balance,100000+done.spent);

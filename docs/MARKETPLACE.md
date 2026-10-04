@@ -28,6 +28,8 @@ O sarcină activă rezervă o garanție de 10% din preț, minimum 0,01, maximum 
 
 ## Resurse și limite
 
+La crearea lucrării, cerințele sunt calculate automat pentru scenele incluse: CPU 2 GB RAM, Blender 4 GB RAM / 4 GB VRAM, respectiv 6 GB RAM peste un milion de pixeli per cadru. Aceste profiluri conservatoare nu garantează consumul exact. Cadrele rulează succesiv pe fiecare GPU; numărul lor nu multiplică memoria necesară simultan. Clientul nou transmite profilul și gazdelor 0.5.0; gazda actualizată calculează profilul independent și ignoră câmpurile manuale ale clienților vechi.
+
 Maximum 12 sarcini CPU și una GPU simultan per dispozitiv, în limitele configurate. PC-ul cu loc liber preia următoarea sarcină. Profilul CPU introduce pauze între sarcini; memoria liberă sub 1 GB oprește temporar atribuirea locală. RAM/VRAM declarate sunt criterii de admitere, nu cote hardware stricte. Memoria nu se cumulează între PC-uri. GPU-ul poate fi solicitat intens.
 
 Se execută numai fractal CPU, ray tracing CPU și animația procedurală Blender inclusă. Nu există scripturi încărcate, fișiere `.blend` arbitrare, terminal remote sau acces general la fișierele altui PC. CPU: se recalculează un rând aleator din rezultat. GPU: se verifică semnătura PNG, dimensiunile și mărimea; corectitudinea randării nu este dovedită independent.
