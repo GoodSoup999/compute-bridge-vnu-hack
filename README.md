@@ -2,6 +2,8 @@
 
 Două PC-uri furnizoare calculează în paralel, iar al treilea rulează coordonatorul și interfața web. Modul **Animație 3D cu Blender GPU** distribuie cadre între cele două laptopuri și le randează cu Cycles pe NVIDIA OptiX sau CUDA. Modurile **Randare 3D cu ray tracing** și **Imagine fractală** distribuie bucăți din imagine pe CPU. Sarcinile stau într-o coadă comună: PC-ul care termină primul preia imediat următorul cadru sau următoarea bucată. VRAM-ul celor două GPU-uri nu este combinat: fiecare GPU procesează separat cadrele pe care le primește.
 
+> **Varianta cea mai simplă este aplicația:** `ComputeBridge.exe` pe Windows sau `compute-bridge` pe Linux, fără nicio instalare. Coordonatorul se găsește singur în rețea, iar totul se face din interfață. Vezi [Aplicația Compute Bridge](#aplicația-compute-bridge). Pașii de mai jos, din linia de comandă, funcționează în continuare.
+
 ## Ce trebuie instalat
 
 - Node.js 20 sau mai nou pe toate cele trei PC-uri. Pe Arch Linux, verificați cu `node --version`; dacă lipsește, instalați cu `sudo pacman -Syu nodejs`. `npm` nu este necesar.
@@ -68,19 +70,30 @@ Pentru CPU, estimarea costului este `suma(timp pe slot × preț orar al PC-ului 
 
 **După actualizarea proiectului:** opriți `server.js` și ambele procese `provider.js`, faceți `git pull` pe toate cele trei PC-uri (sau descărcați din nou arhiva ZIP), apoi porniți serverul și furnizorii cu noul cod de acces. Versiunile vechi ale `provider.js` vor primi un mesaj de actualizare.
 
-## Interfața NODE (test)
+## Aplicația Compute Bridge
 
-Pe lângă interfața originală de la `http://localhost:3000`, serverul oferă și `http://localhost:3000/node`. E aceeași funcționalitate, în designul NODE (prună și piersică), construită ca un editor de noduri: lucrarea, coordonatorul și fiecare PC furnizor sunt blocuri legate prin fire. Firul spre un PC se aprinde cât timp acesta are o sarcină. Sarcinile care pleacă și rezultatele care se întorc circulă pe fire ca puncte luminoase. Imaginea se compune bandă cu bandă (sau cadru cu cadru), colorată după PC-ul care a calculat-o, iar jurnalul înregistrează fiecare eveniment. Codul de acces se introduce la fel ca în interfața originală.
+Cel mai simplu mod de a folosi proiectul este aplicația. Pe Windows și Linux nu trebuie instalat nimic, nici măcar Node.js. Pachetele se descarcă de pe [node-compute.vercel.app/download](https://node-compute.vercel.app/download) sau se construiesc cu `node scripts/build.js`.
 
-Pentru test pe un singur calculator, fără rețea:
+| Pachet | Ce conține |
+| --- | --- |
+| `ComputeBridge-<versiune>-windows-x64.zip` | `ComputeBridge.exe`, cu Node inclus. Dublu-clic. |
+| `compute-bridge-<versiune>-linux-x64.tar.gz` | `compute-bridge`, cu Node inclus. `./compute-bridge` |
+| `compute-bridge-<versiune>-portable.zip` | Codul sursă și lansatoarele, pentru macOS sau orice sistem cu Node.js 20+. |
 
-```powershell
-node scripts/local.js
-```
+La pornire se deschide fereastra aplicației în browser, cu un ecran de start în designul NODE:
 
-Comanda pornește coordonatorul și două PC-uri furnizoare locale pe CPU, apoi afișează linkul de deschis, care conține deja codul de acces. Cu `--gpu`, al doilea PC poate randa și cadre Blender, dacă PC-ul are Blender și o placă NVIDIA. `--port 3001` schimbă portul. Ambele procese folosesc același procesor, deci timpii nu reflectă două PC-uri reale.
+- **Folosesc puterea altor PC-uri** pornește coordonatorul pe acest PC. Ecranul afișează codul de acces, adresa din rețea și PC-urile conectate. Butonul *Deschide panoul de lucru* duce la vizualizarea live de la `/node`: firele către fiecare PC, coada, imaginea care se compune și jurnalul.
+- **Ofer putere de calcul** conectează acest PC la un coordonator, în trei pași. Coordonatorii din aceeași rețea apar singuri în listă, prin semnal UDP pe portul 39871. Adresa se poate scrie și de mână. Aplicația citește procesorul, placa video și Blender, iar tu alegi câte fire oferi și dacă randezi pe GPU. Cât PC-ul lucrează, vezi fiecare slot cu sarcina lui, statisticile și un jurnal. *Oprește partajarea* trimite sarcinile neterminate înapoi în coadă, pentru celelalte PC-uri.
 
-Pentru interfața nouă, `/api/state` trimite acum și `job.tiles`: starea fiecărei sarcini și PC-ul care o are. `/api/preview` întoarce imaginea parțială în modurile CPU. Fonturile sunt în `public/fonts`, sub licența SIL Open Font License.
+Pe Windows, la prima pornire, SmartScreen poate afișa „Windows protected your PC”, pentru că aplicația nu e semnată digital. Se apasă *More info*, apoi *Run anyway*. La cererea firewall-ului se permite accesul în rețelele private.
+
+Din folderul proiectului, aplicația pornește și cu `node app.js`. Pentru test pe un singur calculator, `node scripts/local.js` pornește coordonatorul și două PC-uri furnizoare locale și afișează linkul spre panou.
+
+**Build:** `node scripts/build.js` creează cele trei pachete și `manifest.json` (mărimi și SHA-256) în `dist/`. Cu `--publish <folder>` le copiază acolo, de exemplu în `apps/web/public/downloads` din repo-ul site-ului NODE. Executabilele sunt construite pe Windows x64. Aplicația e strânsă într-un singur script, apoi transformată în blob [Node SEA](https://nodejs.org/api/single-executable-applications.html) și injectată cu `postject` în binarul oficial Node, de aceeași versiune cu cea folosită la build. Binarul de Linux se descarcă de pe nodejs.org și se verifică după SHA-256.
+
+**Teste:** `node test/scheduling.js`, `node test/error-report.js`, `node test/connector.js` (conectorul aplicației: lucru, oprire curată, erori explicate) și, pe un PC cu Blender și NVIDIA, `node test/gpu-smoke.js`.
+
+**Pentru dezvoltatori:** `lib/connector.js` conține logica furnizorului, folosită și de `provider.js` și de aplicație. `server.js` exportă `startServer()`. `/api/state` include `job.tiles`, cu starea și PC-ul fiecărei sarcini, și `coordinator`, cu numele și adresele, fără cod. `/api/preview` dă imaginea parțială în modurile CPU, iar `/api/leave` scoate imediat un PC și îi pune sarcinile înapoi în coadă. Fonturile din `public/fonts` sunt sub licența SIL Open Font License.
 
 ## Limitele prototipului
 
