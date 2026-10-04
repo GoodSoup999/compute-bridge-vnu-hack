@@ -6,13 +6,13 @@ Un PC rulează **coordonatorul**: primește o lucrare, o taie în sarcini și le
 
 Fiecare PC calculează separat: procesoarele și VRAM-ul plăcilor video nu se adună. Fiecare GPU randează cadre întregi, iar fiecare slot CPU calculează benzi întregi din imagine.
 
-**[Descarcă aplicația desktop Windows 0.3.0](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.3.0)** din secțiunea *Assets*: `ComputeBridge-0.3.0-desktop-windows-x64.zip`. Repository-ul este privat: trebuie să fii autentificat cu un cont care are acces.
+**[Descarcă aplicația desktop Windows 0.3.0](https://node-compute.vercel.app/download)** de pe site, fără cont: `ComputeBridge-0.3.0-desktop-windows-x64.zip` (151 MB). Site-ul servește exact arhiva din [release-ul GitHub v0.3.0](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.3.0), cu același SHA-256 (`48eb6c27…6edd`). Release-ul e vizibil doar pentru conturile cu acces la acest repository privat.
 
-Site de prezentare: [node-compute.vercel.app](https://node-compute.vercel.app). **Pagina sa de download încă distribuie versiunea veche 0.2.0, cu interfață în browser. Pentru desktop folosește release-ul GitHub de mai sus.**
+Site de prezentare și documentație: [node-compute.vercel.app](https://node-compute.vercel.app).
 
 ## Descarcă și pornește aplicația desktop
 
-1. Descarcă arhiva desktop din release și dezarhivează **întregul folder**.
+1. Descarcă arhiva desktop de pe site (sau din release) și dezarhivează **întregul folder**.
 2. Dă dublu-clic pe `ComputeBridge.exe` din `Compute Bridge-win32-x64`.
 3. Se deschide fereastra proprie a aplicației, în română. Alege dacă acest PC oferă putere sau coordonează lucrări.
 4. *Deschide panoul de lucru* deschide o a doua fereastră a aplicației.
@@ -178,7 +178,7 @@ node provider.js --server http://192.168.1.10:3000 --token COD --name PC-5060 --
 - **Ctrl+C** oprește furnizorul, iar coordonatorul îl vede imediat offline.
 
 **Alte moduri de pornire:**
-- `node app.js` pornește aplicația din sursă.
+- `npm ci`, apoi `npm run desktop`, pornește aplicația desktop din sursă. `node app.js` pornește varianta veche, în browser.
 - `node scripts/local.js` pornește un coordonator și doi furnizori pe același PC, pentru test, și afișează linkul spre panou.
 
 ## Dacă un PC nu se poate conecta
@@ -235,7 +235,7 @@ Pe un PC cu Blender și NVIDIA există și `node test/gpu-smoke.js`, care verifi
 
 **Build desktop:** `node scripts/build.js` creează pachetul Electron, arhiva ZIP și manifestul cu mărime și SHA-256 în `dist/desktop/`; se rulează pe Windows x64 după `npm ci`.
 - Cu `--publish <folder>`, arhiva, manifestul și checksum-ul se copiază acolo. Pentru site: `node scripts/build.js --publish ../apps/web/public/downloads`, apoi publică proiectul site-ului în Vercel. Copierea fișierelor local sau un push în acest repository nu actualizează automat site-ul separat.
-- Pagina de download și documentația site-ului trebuie să descrie fereastra desktop și să nu mai ceară păstrarea consolei deschise. Manifestul nou indică `ui: "desktop"`.
+- Pagina de download a site-ului citește `manifest.json` (inclusiv `ui: "desktop"`) și descrie aplicația desktop 0.3.0, cu fereastră proprie.
 
 **După o actualizare,** pune aceeași versiune pe toate PC-urile: aplicația nouă, sau `git pull` pentru linia de comandă. Un furnizor cu protocol vechi primește mesajul să se actualizeze.
 
