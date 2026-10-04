@@ -41,7 +41,7 @@ function createHubServer(options = {}) {
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://hub'); const route = url.pathname;
-      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 4 });
+      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 5 });
       if (!route.startsWith('/v1/')) return json(res, 404, { error: 'Negăsit' });
       const body = req.method === 'POST' ? await readJson(req) : {};
       if (req.method === 'POST' && ['/v1/auth/register', '/v1/auth/login'].includes(route)) {
@@ -77,10 +77,6 @@ function createHubServer(options = {}) {
       const user = hub.authenticate(token);
       if (route === '/v1/auth/logout' && req.method === 'POST') { hub.logout(token); return json(res, 200, { ok: true }); }
       if (route === '/v1/state' && req.method === 'GET') return json(res, 200, hub.state(user.id));
-      if (route === '/v1/parties' && req.method === 'POST') return json(res, 201, hub.createParty(user.id, body.name));
-      if (route === '/v1/parties/invite' && req.method === 'POST') return json(res, 200, hub.invite(user.id, body.partyId, body.email));
-      if (route === '/v1/parties/respond' && req.method === 'POST') return json(res, 200, hub.accept(user.id, body.inviteId, body.accept === true));
-      if (route === '/v1/parties/leave' && req.method === 'POST') return json(res, 200, hub.leaveParty(user.id, body.partyId, body.memberId));
       if (route === '/v1/devices' && req.method === 'POST') return json(res, 201, hub.registerDevice(user.id, body));
       if (route === '/v1/devices/stop' && req.method === 'POST') return json(res, 200, hub.revokeDevice(user.id, body.deviceId));
       if (route === '/v1/jobs' && req.method === 'POST') return json(res, 201, hub.createJob(user.id, body));

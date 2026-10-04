@@ -12,16 +12,14 @@ if (fs.existsSync(file + '.admin.json')) {
 } else {
 const store = new Store(file);
 try {
-  if (args[0] === 'list') console.log(JSON.stringify({ users: store.data.users.map(u => ({ id: u.id, email: u.email, credits: u.balance / 1000 })), devices: store.data.devices.map(d => ({ id: d.id, name: d.name, ownerId: d.ownerId, approved: d.approved })) }, null, 2));
+  if (args[0] === 'list') console.log(JSON.stringify({ users: store.data.users.map(u => ({ id: u.id, email: u.email, credits: u.balance / 1000 })), devices: store.data.devices.map(d => ({ id: d.id, name: d.name, ownerId: d.ownerId })) }, null, 2));
   else store.transaction(s => {
     if (args[0] === 'credit') {
       const user = s.users.find(u => u.email === args[1]); const n = Number(args[2]);
       if (!user || !Number.isFinite(n) || n <= 0 || n > 10000) throw new Error('credit EMAIL SUMA (0–10000)');
       const delta = Math.round(n * 1000); user.balance += delta;
       s.ledger.push({ id: require('crypto').randomUUID(), userId: user.id, delta, reason: 'Credite beta acordate de administrator', ref: 'admin', at: Date.now() });
-    } else if (args[0] === 'approve') {
-      const d = s.devices.find(d => d.id === args[1]); if (!d) throw new Error('Dispozitiv necunoscut'); d.approved = true;
-    } else throw new Error('Comenzi: list | credit EMAIL SUMA | approve DEVICE_ID');
+    } else throw new Error('Comenzi: list | credit EMAIL SUMA');
     console.log('Actualizat. Poți reporni hub-ul.');
   });
 } catch (e) { console.error(e.message); process.exitCode = 1; } finally { store.close(); }

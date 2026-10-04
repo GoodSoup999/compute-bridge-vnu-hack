@@ -18,7 +18,7 @@ class Store {
     this.db = new DatabaseSync(file);
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL); CREATE TABLE IF NOT EXISTS results (id TEXT PRIMARY KEY, data BLOB NOT NULL)');
     const row = this.db.prepare('SELECT data FROM state WHERE id=1').get();
-    this.data = row ? JSON.parse(row.data) : { users: [], sessions: [], devices: [], parties: [], invites: [], jobs: [], ledger: [] };
+    this.data = row ? JSON.parse(row.data) : { users: [], sessions: [], devices: [], jobs: [], ledger: [] };
   }
   transaction(fn) {
     const before = JSON.stringify(this.data);

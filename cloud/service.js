@@ -11,10 +11,24 @@ function amount(value, min = 0, max = 10000) { const n = Number(value); if (!Num
 const label = value => String(value || '').trim().slice(0, 70);
 
 class Hub {
-  constructor({ file = ':memory:', clock = Date.now, initialCredits = 0, approveDevices = false } = {}) {
-    this.store = new Store(file); this.clock = clock; this.initialCredits = initialCredits; this.approveDevices = approveDevices;
+  constructor({ file = ':memory:', clock = Date.now, initialCredits = 100 } = {}) {
+    this.store = new Store(file); this.clock = clock; this.initialCredits = initialCredits;
     // A hub restart is not a provider fault. Release unfinished leases and deposits.
-    this.write(s => { for (const j of s.jobs) for (const t of j.tasks) if (t.status === 'assigned') this.release(j, t, false); for (const d of s.devices) d.lastSeen = 0; });
+    this.write(s => {
+      for (const j of s.jobs) {
+        for (const t of j.tasks) if (t.status === 'assigned') this.release(j, t, false);
+        if (j.target === 'party' && j.status === 'running') this.finish(j, 'cancelled', 'Lucrare închisă la simplificarea marketplace-ului');
+        delete j.partyId; delete j.marketFallback;
+      }
+      delete s.parties; delete s.invites;
+      for (const d of s.devices) {
+        d.lastSeen = 0;
+        delete d.partyId; delete d.partyAll; delete d.allowedUsers; delete d.approved;
+      }
+      for (const u of s.users) if (!s.ledger.some(l => l.userId === u.id && (l.ref === 'signup' || l.ref === 'welcome-v5'))) {
+        this.money(u.id, amount(this.initialCredits), 'Credite de început', 'welcome-v5');
+      }
+    });
   }
   get s() { return this.store.data; }
   write(fn) { return this.store.transaction(fn); }
@@ -34,75 +48,40 @@ class Hub {
     return this.write(s => {
       if (s.users.some(u => u.email === email)) fail('Contul există deja', 409);
       const u = { id: id(), email, name: label(name) || email.split('@')[0], passwordHash, salt, balance: 0 };
-      s.users.push(u); if (this.initialCredits) this.money(u.id, amount(this.initialCredits), 'Credite de test', 'signup');
+      s.users.push(u); if (this.initialCredits) this.money(u.id, amount(this.initialCredits), 'Credite de început', 'signup');
       return { token: this.session(u.id) };
     });
   }
   login(uid) { return this.write(() => ({ token: this.session(uid) })); }
   logout(token) { this.write(s => { s.sessions = s.sessions.filter(x => x.hash !== hash(token)); }); }
-  party(pid, uid) { return this.s.parties.find(p => p.id === pid && p.members.includes(uid)) || fail('Nu ai acces la party', 403); }
-  createParty(uid, name) {
-    return this.write(s => { if (s.parties.filter(p => p.ownerId === uid).length >= 20) fail('Maximum 20 party-uri'); const p = { id: id(), name: label(name) || 'Party', ownerId: uid, members: [uid] }; s.parties.push(p); return p; });
-  }
-  invite(uid, pid, email) {
-    return this.write(s => {
-      const p = this.party(pid, uid); if (p.ownerId !== uid) fail('Doar creatorul invită membri', 403);
-      const target = s.users.find(u => u.email === String(email).trim().toLowerCase()); if (!target) fail('Prietenul trebuie să își creeze mai întâi contul', 404);
-      if (p.members.includes(target.id) || s.invites.some(i => i.partyId === pid && i.userId === target.id)) fail('Membru sau invitație existentă', 409);
-      s.invites.push({ id: id(), partyId: pid, userId: target.id }); return { ok: true };
-    });
-  }
-  accept(uid, inviteId, accept) {
-    return this.write(s => { const i = s.invites.find(i => i.id === inviteId && i.userId === uid) || fail('Invitație inexistentă', 404); const p = s.parties.find(p => p.id === i.partyId); if (accept && p && !p.members.includes(uid)) p.members.push(uid); s.invites = s.invites.filter(x => x.id !== i.id); return { ok: true }; });
-  }
-  leaveParty(uid, pid, memberId = uid) {
-    return this.write(s => {
-      const p = this.party(pid, uid); if (uid !== memberId && p.ownerId !== uid) fail('Acces interzis', 403);
-      if (p.ownerId === memberId) fail('Creatorul party-ului nu poate fi eliminat');
-      p.members = p.members.filter(x => x !== memberId);
-      for (const d of s.devices) if (d.partyId === pid && d.ownerId === memberId) d.partyId = null;
-      for (const j of s.jobs.filter(j => j.partyId === pid && j.status === 'running')) for (const t of j.tasks) if (t.status === 'assigned') {
-        const d = s.devices.find(d => d.id === t.deviceId); if (!this.partyAllowed(d, j)) this.release(j, t, false);
-      }
-      return { ok: true };
-    });
-  }
   deviceConfig(uid, b) {
-    const partyId = b.partyId || null; if (partyId) this.party(partyId, uid);
-    const allowedUsers = Array.isArray(b.allowedUsers) ? [...new Set(b.allowedUsers)].slice(0, 100) : [];
-    if (partyId && allowedUsers.some(x => !this.party(partyId, uid).members.includes(x))) fail('Permisiune pentru un membru necunoscut');
+    if (b.market && Number(b.slots) === 0 && b.gpuRender !== true) fail('Oferă cel puțin un fir CPU sau GPU-ul');
     return { name: label(b.name) || 'PC', cpu: label(b.cpu), gpu: label(b.gpu),
       slots: integer(b.slots ?? 2, 0, 12, 'Fire CPU'), gpuRender: b.gpuRender === true,
       ramGb: integer(b.ramGb ?? 4, 1, 512, 'RAM'), vramGb: integer(b.vramGb ?? 0, 0, 128, 'VRAM'),
       cpuPercent: integer(b.cpuPercent ?? 50, 10, 80, 'Buget CPU'),
       until: integer(b.until, this.clock() + 1000, this.clock() + 86400000, 'Sfârșit disponibilitate'),
       market: b.market === true, commitment: b.commitment === 'reserved' ? 'reserved' : 'flexible',
-      price: amount(b.price ?? 1, 0.1, 20), partyId, allowedUsers,
-      partyAll: b.partyAll === true, paused: false };
+      price: amount(b.price ?? 1, 0.1, 20), paused: false };
   }
   registerDevice(uid, b) {
     return this.write(s => {
       if (!/^[a-f0-9]{64}$/.test(b.clientKey || '')) fail('Identitate dispozitiv invalidă');
       let d = s.devices.find(d => d.ownerId === uid && d.clientKey === hash(b.clientKey));
       if (d && s.jobs.some(j => j.tasks.some(t => t.status === 'assigned' && t.deviceId === d.id))) fail('Oprește sau finalizează sarcinile înainte de reconfigurare', 409);
-      if (!d) { if (s.devices.filter(d => d.ownerId === uid).length >= 20) fail('Maximum 20 dispozitive'); d = { id: id(), ownerId: uid, clientKey: hash(b.clientKey), approved: this.approveDevices, completed: 0, failed: 0, averageMs: 30000 }; s.devices.push(d); }
-      Object.assign(d, this.deviceConfig(uid, b), { lastSeen: this.clock() });
+      if (!d) { if (s.devices.filter(d => d.ownerId === uid).length >= 20) fail('Maximum 20 dispozitive'); d = { id: id(), ownerId: uid, clientKey: hash(b.clientKey), completed: 0, failed: 0, averageMs: 30000 }; s.devices.push(d); }
+      Object.assign(d, this.deviceConfig(uid, b), { lastSeen: 0 });
       const token = secret(); d.tokenHash = hash(token); return { id: d.id, token };
     });
   }
-  partyAllowed(d, j) {
-    const p = this.s.parties.find(p => p.id === j.partyId);
-    return !!d && !!p && d.partyId === p.id && p.members.includes(d.ownerId) && p.members.includes(j.ownerId) && (d.ownerId === j.ownerId || d.partyAll || d.allowedUsers.includes(j.ownerId));
-  }
+  online(d) { return !d.paused && d.lastSeen > 0 && this.clock() - d.lastSeen < 20000 && d.until > this.clock() + 5000; }
   eligible(d, j, kind) {
-    const now = this.clock();
-    if (d.paused || now - d.lastSeen > 20000 || d.until <= now + 5000 || j.status !== 'running') return false;
+    if (!this.online(d) || j.status !== 'running') return false;
     if ((j.mode === 'blender') !== (kind === 'gpu') || (kind === 'gpu' ? !d.gpuRender || d.vramGb < j.minVram : d.slots < 1) || d.ramGb < j.minRam) return false;
     if (d.id === j.requestDeviceId) return j.execution === 'hybrid';
-    if (j.target === 'party' && this.partyAllowed(d, j)) return !j.deviceIds.length || j.deviceIds.includes(d.id);
-    return (j.target === 'market' || j.marketFallback) && d.market && d.approved && d.ownerId !== j.ownerId;
+    return d.market && d.ownerId !== j.ownerId && (!j.providerId || d.id === j.providerId);
   }
-  free(j, d) { return d.ownerId === j.ownerId || (j.target === 'party' && this.partyAllowed(d, j)); }
+  free(j, d) { return d.id === j.requestDeviceId && j.execution === 'hybrid'; }
   quote(j, t, d) {
     if (this.free(j, d)) return 0;
     const units = j.mode === 'blender' ? j.width * j.height * j.samples / 20000000 : j.width * t.rows * (j.iterations || j.samples * 80) / 10000000;
@@ -110,16 +89,16 @@ class Hub {
   }
   createJob(uid, b) {
     return this.write(s => {
-      const target = b.target; if (!['market', 'party'].includes(target) || !['hybrid', 'remote'].includes(b.execution)) fail('Alege marketplace/party și cu/fără acest laptop');
-      if (target === 'party') this.party(b.partyId, uid);
+      if (b.target && b.target !== 'market') fail('Doar marketplace este disponibil');
+      if (!['hybrid', 'remote'].includes(b.execution)) fail('Alege cu sau fără contribuția acestui laptop');
       if (s.jobs.filter(j => j.ownerId === uid && j.status === 'running').length >= 3) fail('Maximum 3 lucrări active');
       if (s.jobs.filter(j => j.ownerId === uid && this.clock() - j.createdAt < 86400000).length >= 50) fail('Maximum 50 lucrări pe zi în beta', 429);
       const current = s.devices.find(d => d.id === b.requestDeviceId && d.ownerId === uid);
       if (!current) fail('Înregistrează acest dispozitiv înainte de pornire');
       if (b.execution === 'hybrid' && (current.paused || this.clock() - current.lastSeen > 20000)) fail('Pornește agentul local pentru modul mixt');
       const mode = b.mode; if (!['fractal', 'raytrace', 'blender'].includes(mode)) fail('Lucrare nesuportată');
-      const j = { id: id(), ownerId: uid, requestDeviceId: current.id, target, partyId: target === 'party' ? b.partyId : null,
-        execution: b.execution, deviceIds: Array.isArray(b.deviceIds) ? [...new Set(b.deviceIds)].slice(0, 100) : [], marketFallback: target === 'party' && b.marketFallback === true, mode, status: 'running',
+      const j = { id: id(), ownerId: uid, requestDeviceId: current.id, target: 'market', providerId: b.providerId || null,
+        execution: b.execution, mode, status: 'running',
         width: integer(b.width, 200, 1600, 'Lățime'), height: integer(b.height, 200, 1000, 'Înălțime'),
         iterations: mode === 'fractal' ? integer(b.iterations, 100, 10000, 'Iterații') : null,
         samples: mode !== 'fractal' ? integer(b.samples, 8, 256, 'Mostre') : null,
@@ -130,7 +109,11 @@ class Hub {
       if (s.jobs.reduce((n, x) => n + x.width * x.height * (x.frames || 1), 0) + j.width * j.height * (j.frames || 1) > 250000000) fail('Stocarea hub-ului este ocupată; contactează administratorul', 503);
       if (mode === 'blender') for (let frame = 0; frame < j.frames; frame++) j.tasks.push({ id: id(), frame, status: 'pending', attempts: 0 });
       else for (let y = 0; y < j.height; y += 16) j.tasks.push({ id: id(), y, rows: Math.min(16, j.height - y), status: 'pending', attempts: 0 });
-      if (target === 'market' || j.marketFallback) { j.escrow = amount(b.budget, 0.1, 1000); this.money(uid, -j.escrow, 'Buget rezervat', j.id); }
+      const compatible = s.devices.filter(d => d.id !== current.id && this.eligible(d, j, mode === 'blender' ? 'gpu' : 'cpu'));
+      if (!compatible.length) fail(j.providerId ? 'PC-ul ales nu este disponibil sau nu este compatibil cu lucrarea. Alege alt PC.' : 'Niciun PC remote compatibil nu este disponibil. Un furnizor trebuie să pornească oferta.');
+      j.escrow = amount(b.budget, 0.1, 1000);
+      if (compatible.every(d => this.quote(j, j.tasks[0], d) > j.escrow)) fail('Bugetul nu ajunge pentru prima sarcină');
+      this.money(uid, -j.escrow, 'Buget rezervat', j.id);
       s.jobs.push(j); return { id: j.id };
     });
   }
@@ -226,13 +209,12 @@ class Hub {
   }
   state(uid) {
     const s = this.s; const u = this.user(uid);
-    const parties = s.parties.filter(p => p.members.includes(uid));
-    const deviceView = d => ({ id: d.id, ownerId: d.ownerId, owner: this.user(d.ownerId).name, name: d.name, cpu: d.cpu, gpu: d.gpu, slots: d.slots, gpuRender: d.gpuRender, ramGb: d.ramGb, vramGb: d.vramGb, until: d.until, market: d.market, approved: d.approved, commitment: d.commitment, price: d.price / 1000, partyId: d.partyId, partyAll: d.partyAll, allowedUsers: d.ownerId === uid ? d.allowedUsers : undefined, canUse: d.ownerId === uid || parties.some(p => p.id === d.partyId && (d.partyAll || d.allowedUsers.includes(uid))), online: !d.paused && d.until > this.clock() && this.clock() - d.lastSeen < 20000, completed: d.completed, failed: d.failed });
+    const deviceView = d => ({ id: d.id, ownerId: d.ownerId, owner: this.user(d.ownerId).name, name: d.name, cpu: d.cpu, gpu: d.gpu, slots: d.slots, gpuRender: d.gpuRender, ramGb: d.ramGb, vramGb: d.vramGb, until: d.until, market: d.market, commitment: d.commitment, price: d.price / 1000, online: this.online(d), completed: d.completed, failed: d.failed,
+      busy: s.jobs.flatMap(j => j.tasks).filter(t => t.status === 'assigned' && t.deviceId === d.id).length,
+      earned: s.ledger.filter(l => l.userId === d.ownerId && l.reason === 'Sarcină acceptată').reduce((n,l) => n + l.delta, 0) / 1000 });
     return { user: { id: u.id, name: u.name, email: u.email, credits: u.balance / 1000 },
-      parties: parties.map(p => ({ ...p, members: p.members.map(x => ({ id: x, name: this.user(x).name, email: this.user(x).email })) })),
-      invites: s.invites.filter(i => i.userId === uid).map(i => ({ ...i, name: s.parties.find(p => p.id === i.partyId)?.name })),
-      devices: s.devices.filter(d => d.ownerId === uid || parties.some(p => p.id === d.partyId) || d.market && d.approved).map(deviceView),
-      jobs: s.jobs.filter(j => j.ownerId === uid).slice(-30).reverse().map(j => ({ id: j.id, mode: j.mode, target: j.target, status: j.status, execution: j.execution, total: j.tasks.length, done: j.tasks.filter(t => t.status === 'done').length, spent: j.spent / 1000, reserved: j.escrow / 1000, error: j.error, waiting: this.waitingReason(j), frames: j.frames, contributions: j.tasks.filter(t => t.status === 'done').reduce((a, t) => { const name = s.devices.find(d => d.id === t.deviceId)?.name || 'PC'; a[name] = (a[name] || 0) + 1; return a; }, {}) })),
+      devices: s.devices.filter(d => d.ownerId === uid || d.market && this.online(d)).map(deviceView),
+      jobs: s.jobs.filter(j => j.ownerId === uid).slice(-30).reverse().map(j => ({ id: j.id, mode: j.mode, providerId: j.providerId, provider: s.devices.find(d => d.id === j.providerId)?.name || 'Automat', status: j.status, execution: j.execution, total: j.tasks.length, done: j.tasks.filter(t => t.status === 'done').length, spent: j.spent / 1000, reserved: j.escrow / 1000, error: j.error, waiting: this.waitingReason(j), frames: j.frames, contributions: j.tasks.filter(t => t.status === 'done').reduce((a, t) => { const name = s.devices.find(d => d.id === t.deviceId)?.name || 'PC'; a[name] = (a[name] || 0) + 1; return a; }, {}) })),
       ledger: s.ledger.filter(l => l.userId === uid).slice(-30).reverse().map(l => ({ ...l, delta: l.delta / 1000 })) };
   }
   close() { this.store.close(); }

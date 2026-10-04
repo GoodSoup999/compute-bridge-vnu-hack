@@ -11,13 +11,13 @@ async function startAdmin(hub, infoFile) {
       if (req.method !== 'POST' || req.url !== '/') throw new Error('Rută necunoscută');
       const parts = []; let size = 0; for await (const p of req) { size += p.length; if (size > 4096) throw new Error('Cerere prea mare'); parts.push(p); }
       const b = JSON.parse(Buffer.concat(parts).toString());
-      if (b.command === 'list') return reply(200, { users: hub.s.users.map(u => ({ id: u.id, email: u.email, credits: u.balance / 1000 })), devices: hub.s.devices.map(d => ({ id: d.id, name: d.name, ownerId: d.ownerId, approved: d.approved })) });
+      if (b.command === 'list') return reply(200, { users: hub.s.users.map(u => ({ id: u.id, email: u.email, credits: u.balance / 1000 })), devices: hub.s.devices.map(d => ({ id: d.id, name: d.name, ownerId: d.ownerId })) });
       hub.write(s => {
         if (b.command === 'credit') {
           const u = s.users.find(u => u.email === b.email); const n = Number(b.amount);
           if (!u || !Number.isFinite(n) || n <= 0 || n > 10000) throw new Error('Email sau sumă invalidă');
           hub.money(u.id, Math.round(n * 1000), 'Credite beta acordate de administrator', 'admin');
-        } else if (b.command === 'approve') { const d = s.devices.find(d => d.id === b.deviceId); if (!d) throw new Error('Dispozitiv necunoscut'); d.approved = true; }
+        }
         else throw new Error('Comandă necunoscută');
       }); reply(200, { ok: true });
     } catch (e) { reply(400, { error: e.message }); }

@@ -1,82 +1,65 @@
-# Compute Bridge 0.4 — beta
+# Compute Bridge 0.5 — marketplace simplu
 
-Aplicație Windows pentru calcul distribuit prin internet: marketplace cu credite și party-uri cu PC-urile tale sau ale prietenilor de încredere. Interfața se deschide în propria fereastră.
+Aplicație Windows pentru a oferi puterea PC-ului și a folosi PC-uri disponibile prin internet. Serverul echipei este inclus în configurația aplicației: utilizatorii nu introduc linkuri sau coduri.
 
-## Descărcare
+[Descarcă aplicația Windows 0.5](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.5.0-beta.1). Dezarhivează întregul folder și pornește **ComputeBridge.exe**. Clientul nu cere Node.js. Pentru GPU sunt necesare Blender și o placă NVIDIA.
 
-Descarcă pachetul **ComputeBridge-0.4.0-desktop-windows-x64.zip** din [GitHub Releases](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.4.0-beta.1), dezarhivează întregul folder și pornește **ComputeBridge.exe**. Ai nevoie de acces la repository-ul privat. Clientul nu cere Node.js. Randarea GPU cere Blender compatibil și GPU NVIDIA.
+## Fluxul principal
 
-Site de prezentare: [node-compute.vercel.app](https://node-compute.vercel.app). Actualizarea recentă a echipei indică desktop 0.3.0 pe site; beta 0.4 se descarcă separat din release-ul de mai sus. Publicarea în acest repository nu actualizează automat site-ul.
+1. Deschizi aplicația și creezi un cont. Primești **100 de credite de test**, o singură dată.
+2. În **Oferă PC-ul meu**, alegi intervalul în ore, resursele și pornești oferta. PC-ul apare în marketplace după confirmarea conexiunii agentului. Nu cere aprobare manuală.
+3. Un alt utilizator vede PC-ul în **PC-uri disponibile**, apasă **Folosește acest PC**, alege lucrarea și o pornește.
+4. Agentul furnizor execută sarcinile și trimite rezultatele prin server. Cumpărătorul consumă credite, iar furnizorul primește aceeași sumă pentru sarcinile acceptate.
+5. Restul bugetului revine în sold la finalizare sau anulare. Ofertele expirate, oprite sau deconectate dispar din lista disponibilă.
 
-## Ce poți face
+Poți selecta un PC anume sau distribuirea automată între PC-urile compatibile. Lucrările disponibile sunt fractal CPU, ray tracing CPU și animație Blender GPU. Același cont poate oferi un PC și trimite lucrări. Pentru trimitere poți folosi doar resurse remote sau contribui și cu laptopul curent.
 
-- Creezi un cont pe hub-ul echipei, fără coduri de conectare între PC-uri.
-- Rulezi lucrări folosind **PC-uri remote** sau **acest laptop + PC-uri remote**.
-- Creezi party-uri și inviți prieteni. Fiecare proprietar decide ce dispozitiv oferă și cine îl poate folosi.
-- Oferi resurse pentru 1–24 de ore, cu număr de fire CPU, pauze între sarcini, GPU opțional și cerințe de memorie pentru alocare.
-- Folosești marketplace-ul cu buget rezervat, tranzacții persistente, restituirea creditelor nefolosite și suplimentarea bugetului.
-- PC-urile preiau dinamic următoarea sarcină disponibilă. Cadrele nu se împart fix în pare/impare.
-- Redai animația rezultată cu viteză reglabilă, 1–30 FPS.
+## Serverul echipei
 
-Lucrările disponibile sunt fractal CPU, ray tracing CPU și animație procedurală Blender GPU. Aplicația nu rulează încă orice program încărcat de utilizator.
-
-## Hub pe PC-ul vostru
-
-Un PC central trebuie să rămână pornit și conectat la internet. Instalează **Node.js 24+** și `cloudflared`, apoi urmează [ghidul de găzduire](docs/HOSTING.md).
+[Ghid de găzduire și actualizare](docs/HOSTING.md). Serverul se găzduiește pe PC-ul echipei, cu Node.js 24+ și un tunel HTTPS. Gazda trebuie să rămână pornită.
 
 ```powershell
 npm run hub:public
 ```
 
-Comanda pornește hub-ul și un tunel HTTPS temporar. Introduceți aceeași adresă HTTPS în aplicațiile voastre. Adresa temporară se schimbă la repornire; pentru o adresă stabilă configurați un tunel permanent cu domeniu. Nu este necesară expunerea portului 3000 în router.
+Adresa este configurată de administrator în `desktop/config.json`, apoi inclusă în pachetul distribuit. Un Quick Tunnel își schimbă adresa la repornire: utilizatorii nu completează adresa, însă administratorul trebuie să actualizeze configurația pachetului dacă tunelul se schimbă. O adresă permanentă elimină această etapă.
 
-Conturile pornesc cu **zero credite**. Administratorul acordă credite și aprobă dispozitivele pentru marketplace. Party-urile sunt gratuite. [Regulile creditelor, penalizărilor și limitările beta](docs/MARKETPLACE.md).
+Site de prezentare: [node-compute.vercel.app](https://node-compute.vercel.app). Publicarea aici nu actualizează automat download-ul site-ului separat.
 
-## Dezvoltare
+## Credite și disponibilitate
+
+Creditele sunt interne aplicației, fără cumpărare sau retragere în bani. Conturile existente care nu au primit bonusul de început primesc și ele 100 de credite o singură dată la actualizarea serverului. Soldurile și rezultatele existente se păstrează.
+
+O ofertă durează 1–24 de ore. PC-ul trebuie să rămână conectat cu aplicația deschisă. Sarcinile active au o garanție de 10% din preț, minimum 0,01 și maximum 1 credit. Garanția revine furnizorului la finalizare; o întrerupere forțată o poate transfera clientului. Nu se aplică penalizări pentru simpla disponibilitate fără lucru. [Regulile complete](docs/MARKETPLACE.md).
+
+## Dezvoltare și verificări
 
 ```powershell
 npm ci
 npm run hub
-npm run desktop
 ```
 
-Pentru test local, adresa serviciului este `http://127.0.0.1:8787`. Pentru alte calculatoare este necesar HTTPS.
+În alt terminal, pentru test pe același PC:
 
 ```powershell
-npm run desktop:build
+$env:CB_HUB_URL = 'http://127.0.0.1:8787'
+npm run desktop
 ```
-
-Pachetul este generat în `dist/desktop`. Pentru a include adresa stabilă a echipei în aplicație, setează `CB_HUB_URL` înainte de build. Opțiunea `--publish FOLDER` copiază artefactele într-un folder; nu publică automat un site.
-
-### Verificări
 
 ```powershell
 npm test
 npm run test:hub
+npm run test:marketplace
 npm run desktop:smoke
+npm run desktop:build
 ```
 
-Testele hub-ului verifică permisiunile, randarea CPU cu un agent real, izolarea rezultatelor, rezervarea creditelor, plata unică, penalizările, anularea și recuperarea după restart.
+Testul marketplace pornește trei instanțe ale punții folosite de aplicația desktop și agenți reali: înregistrare, ofertă, vizibilitate, alegerea PC-ului, calcul, transfer de credite, oprirea și repornirea ofertei. `TEST_GPU=1` activează și proba Blender pe un PC cu NVIDIA.
 
-## Structură
+## Limite beta
 
-| Componentă | Fișier |
-|---|---|
-| Fereastră Windows | `desktop/main.js` |
-| Legătura locală cu contul și agentul | `hub-app.js` |
-| Interfață marketplace / party | `public/hub.*` |
-| API central | `cloud/server.js` |
-| Coada de sarcini și credite | `cloud/service.js` |
-| Persistență SQLite | `cloud/store.js` |
-| Agent remote | `lib/remote-agent.js` |
-| Hosting și administrare | `scripts/host.js`, `scripts/hub-admin.js` |
+CPU și GPU execută sarcini predefinite; nu există încă rulare de programe sau fișiere arbitrare. RAM și VRAM nu se adună între calculatoare. Valorile de memorie sunt criterii de alocare, nu cote hardware stricte. Profilul CPU folosește fire și pauze între sarcini. GPU-ul poate fi solicitat intens.
 
-## Limite ale versiunii beta
+CPU: serverul recalculează un rând aleator din fiecare rezultat. GPU: serverul verifică formatul PNG și dimensiunile, fără dovadă completă a corectitudinii. Beta este pentru testul cu participanți cunoscuți. Bonusul de început nu este protejat încă prin verificare email sau identitate; nu se folosesc bani reali. Nu există recuperare automată a parolelor.
 
-RAM și VRAM nu se adună într-o singură memorie. Un cadru GPU trebuie să încapă pe un singur dispozitiv. Limitele de memorie sunt criterii de alocare, nu partiții hardware; reglajul CPU folosește fire și pauze între sarcini, nu o limită strictă impusă de sistem.
-
-Marketplace-ul este pentru furnizori aprobați de administrator. Verificarea CPU recalculează un rând aleator; verificarea GPU controlează formatul și dimensiunile, fără a demonstra corectitudinea imaginii. Nu există încă verificare email, recuperare parole, plăți în bani sau retrageri de credite. Pentru testul echipei folosiți lista de emailuri permisă descrisă în ghid.
-
-## Codul anterior
-
-Implementarea LAN și motoarele de calcul sunt păstrate. Comenzile `npm start`, `npm run app`, `npm run provider` și `npm run build:browser` rămân disponibile pentru vechiul flux. [Documentația LAN anterioară](docs/LEGACY-LAN.md).
+Codul LAN și motoarele de calcul anterioare sunt păstrate. [Documentația fluxului LAN](docs/LEGACY-LAN.md).

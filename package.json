@@ -1,6 +1,6 @@
 {
   "name": "hackerville-compute-bridge",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "main": "desktop/main.js",
   "scripts": {
@@ -18,7 +18,8 @@
     "build:browser": "node scripts/build-browser.js",
     "test": "node test/scheduling.js && node test/error-report.js && node test/connector.js",
     "provider": "node provider.js",
-    "local": "node scripts/local.js"
+    "local": "node scripts/local.js",
+    "test:marketplace": "node test/marketplace.js"
   },
   "engines": {
     "node": ">=24"

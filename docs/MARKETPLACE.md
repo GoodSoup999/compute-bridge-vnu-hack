@@ -1,42 +1,35 @@
-# Reguli pentru beta 0.4
+# Credite și oferte — beta 0.5
 
 ## Credite
 
-Creditele sunt interne, fără valoare monetară, cumpărare sau retragere. Nu se emit credite automat la înregistrare sau pentru simpla conectare. Numai administratorul alocă solduri inițiale. Disponibilitatea nefolosită nu este remunerată.
+Fiecare cont primește 100 de credite de test o singură dată. Autentificarea sau restart-ul nu acordă bonusul din nou. Conturile vechi fără bonus îl primesc la actualizare. Creditele nu au valoare monetară, cumpărare sau retragere.
 
-La pornire, bugetul marketplace este debitat din soldul disponibil și păstrat în contul lucrării. Fiecare sarcină primește un preț fix la atribuire, calculat din dimensiunea lucrării și tariful furnizorului. Durata raportată de furnizor nu determină plata. O sarcină acceptată este plătită o singură dată, chiar dacă rezultatul este retrimis. Bugetul nefolosit se restituie la finalizare, anulare sau expirare. Se poate adăuga buget unei lucrări active.
+La trimiterea lucrării, serverul verifică dacă există un PC remote conectat, oferit și compatibil cu tipul lucrării și memoria necesară. Pentru un PC selectat, alte PC-uri nu pot prelua sarcinile acestuia. Alternativ, modul automat distribuie sarcini între ofertele compatibile.
 
-O unitate de lucru înseamnă:
+Bugetul maxim este rezervat din sold. Prețul fiecărei sarcini se fixează la atribuire. Clientul consumă acele credite numai când rezultatul este acceptat, iar furnizorul primește aceeași sumă. O retransmitere nu generează o a doua plată. Bugetul nefolosit revine la finalizare, anulare sau expirare. Poți suplimenta o lucrare activă.
+
+Unitățile de demo:
 
 - Fractal: 10 milioane `lățime × rânduri × iterații`.
 - Ray tracing: 125.000 `lățime × rânduri × mostre`.
 - Blender: 20 milioane `lățime × înălțime × mostre` per cadru.
 
-Prețul unei sarcini = unități × tariful furnizorului, rotunjit în sus la 0,001 credite, minimum 0,01 credite. Aceste unități sunt convenții de demo, nu un benchmark comparabil între lucrări. CPU și GPU nu au aceeași unitate fizică. Sarcinile pe PC-uri proprii sau pe PC-uri autorizate în party nu generează transfer de credite.
+Prețul = unități × tariful ofertei, rotunjit în sus la 0,001 credite, minimum 0,01. Durata raportată de furnizor nu determină plata. Contribuția laptopului clientului în modul mixt este gratuită. Aceste unități sunt convenții de demo, nu un benchmark comparabil între tipurile de lucrări.
 
-## Disponibilitate și penalizări
+## Oferta PC-ului
 
-Un dispozitiv poate oferi resurse pentru maximum 24 de ore per sesiune. Modul flexibil nu cere garanție. Modul rezervat reține la atribuirea fiecărei sarcini marketplace o garanție de 10% din preț, minimum 0,01 și maximum 1 credit. Nu se rezervă un PC întreg și nu există în această beta rezervări viitoare plătite: angajamentul este pentru sarcinile acceptate în intervalul declarat.
+Conectarea în cont nu oferă automat PC-ul. Proprietarul apasă **Oferă PC-ul**, alege 1–24 de ore și resursele disponibile. Oferta apare numai după confirmarea agentului prin server. Nu există aprobare manuală.
 
-- Rezultatul acceptat restituie garanția și plătește sarcina.
-- Oprirea imediată în timpul unei sarcini marketplace rezervate transferă garanția clientului.
-- După 60 s fără contact, lucrarea este redistribuită. Garanția este transferată doar dacă hub-ul vede în continuare alte dispozitive online. O întrerupere generală ambiguă nu este taxată.
-- Repornirea hub-ului, anularea clientului, revocarea unei permisiuni de party sau expirarea timpului de execuție nu generează penalizare financiară.
-- „Termin sarcinile curente și opresc” nu mai acceptă sarcini, dar lasă rezultatele curente să se finalizeze.
-- Expirarea disponibilității oprește atribuirea de sarcini noi. Sarcinile acceptate pot termina în limita lor de execuție.
+Oferta dispare când este oprită, intervalul expiră sau nu mai există contact în ultimele 20 de secunde. Dacă un PC pierde conexiunea, sarcinile nefinalizate pot reveni în coadă după 60 de secunde. Alegerea automată poate folosi alt furnizor; alegerea unui PC anume așteaptă acel PC sau anularea clientului.
 
-Nu există penalizări pentru party sau pentru disponibilitate fără sarcini active. Pierderea unei conexiuni poate fi ambiguă; acest model este intenționat conservator. Nu există mecanism de contestații sau garanții comerciale în beta.
+**Termin lucrul și opresc oferta** ascunde oferta și nu mai primește sarcini, dar permite finalizarea celor active. La expirarea intervalului, sarcinile deja atribuite pot termina în limita de execuție. **Oprește imediat** întrerupe lucrul curent.
 
-## Matching și limite
+O sarcină activă rezervă o garanție de 10% din preț, minimum 0,01, maximum 1 credit. Rezultatul acceptat o restituie. Oprirea forțată o transferă clientului. Deconectarea peste 60 s poate transfera garanția dacă alte dispozitive sunt încă online; o întrerupere generală ambiguă nu este taxată. Restart-ul serverului și anularea clientului nu penalizează furnizorul. Simplul timp disponibil fără lucru nu este plătit și nu este penalizat.
 
-Se verifică permisiunea, tipul CPU/GPU, memoria declarată, intervalul disponibil, numărul de sloturi, soldul pentru garanție și bugetul clientului. Dispozitivele marketplace trebuie aprobate de administrator. Agentul cere sarcini când are loc liber; serverul preferă oferte compatibile cu cost și istoric mai bune. PC-urile rapide preiau mai multe bucăți. Nu este implementat un benchmark hardware independent sau o predicție garantată a duratei.
+## Resurse și limite
 
-Aceeași capacitate este contabilizată o singură dată pentru party, marketplace și lucrări proprii. Sunt permise maximum 12 sarcini CPU și una GPU simultan per dispozitiv, în limitele configurate. Agentul aplică pauze între sarcinile CPU pentru profilul de utilizare și nu pornește sarcini când memoria liberă este sub 1 GB. Acestea nu sunt cote stricte de CPU/RAM/VRAM impuse de sistemul de operare. GPU-ul poate ajunge la utilizare mare; VRAM-ul este criteriu de admitere și nu se combină între calculatoare.
+Maximum 12 sarcini CPU și una GPU simultan per dispozitiv, în limitele configurate. PC-ul cu loc liber preia următoarea sarcină. Profilul CPU introduce pauze între sarcini; memoria liberă sub 1 GB oprește temporar atribuirea locală. RAM/VRAM declarate sunt criterii de admitere, nu cote hardware stricte. Memoria nu se cumulează între PC-uri. GPU-ul poate fi solicitat intens.
 
-## Securitate și validare
+Se execută numai fractal CPU, ray tracing CPU și animația procedurală Blender inclusă. Nu există scripturi încărcate, fișiere `.blend` arbitrare, terminal remote sau acces general la fișierele altui PC. CPU: se recalculează un rând aleator din rezultat. GPU: se verifică semnătura PNG, dimensiunile și mărimea; corectitudinea randării nu este dovedită independent.
 
-Conexiunile remote cer HTTPS; HTTP este permis numai pentru test pe loopback. Conturile folosesc scrypt cu salt aleator, sesiunile expiră după 7 zile, iar serverul stochează hash-uri pentru tokenuri. Agentul are un token separat pentru dispozitiv. Nu poate crea lucrări sau administra contul. Tokenurile contului și dispozitivului rămân în procesul local, nu sunt trimise interfeței. La ieșire trebuie făcută din nou autentificarea.
-
-Se execută numai sarcini predefinite din aplicație. Nu există încărcare de scripturi, fișiere `.blend` arbitrare, terminal remote sau acces general la fișiere. CPU: serverul recalculează un rând aleator din fiecare rezultat înainte de acceptare. Este o verificare prin eșantionare, nu o dovadă completă. GPU: se verifică semnătura PNG, dimensiunile și mărimea; corectitudinea randării nu este dovedită independent. De aceea marketplace-ul beta este pentru dispozitive aprobate și participanți cunoscuți.
-
-Nu există izolare prin mașini virtuale, attestation, criptare a datelor în timpul calculului, verificare de identitate sau protecție completă împotriva coluziunii între conturi. Beta nu este potrivită pentru documente confidențiale, bani reali sau furnizori anonimi ostili.
+Conexiunile remote folosesc HTTPS. Parolele folosesc scrypt cu salt; tokenurile sunt stocate ca hash-uri pe server și rămân în procesul local al aplicației, fără a ajunge în interfață. Există limitări de încercări de autentificare și de lucrări active. Nu există încă verificare email, recuperare parolă sau protecție completă împotriva conturilor multiple și rezultatelor GPU frauduloase. Folosește beta cu participanți cunoscuți și credite de test.

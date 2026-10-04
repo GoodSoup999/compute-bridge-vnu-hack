@@ -58,8 +58,8 @@ async function main() {
       'Păstrează toate fișierele lângă executabil, inclusiv resources.\r\n' +
       'Aplicația se deschide în propria fereastră; nu cere Node.js sau browser instalat.\r\n' +
       'Blender și o placă NVIDIA sunt necesare pentru randarea GPU.\r\n' +
-      'Conectează-te la adresa HTTPS a serviciului echipei și creează un cont.\r\n' +
-      'PC-urile pot fi în rețele diferite. Folosește party-uri sau marketplace.\r\n' +
+      'Serverul echipei este configurat automat. Creează un cont; primești 100 credite.\r\n' +
+      'Oferă PC-ul pentru lucru sau folosește un PC disponibil în marketplace.\r\n' +
       'La închiderea aplicației se oprește agentul acestui PC.\r\n');
     const file = `ComputeBridge-${version}-desktop-windows-x64.zip`;
     const archive = path.join(output, file);
