@@ -8,6 +8,15 @@ Două PC-uri furnizoare calculează în paralel bucăți dintr-o imagine fractal
 - Toate PC-urile în aceeași rețea locală. Permiteți accesul la portul TCP 3000 pe PC-ul coordonator, dacă firewall-ul este activ. Pe Windows, acceptați accesul pe rețeaua privată.
 - Copiați acest folder pe fiecare PC. Nu este necesar `npm install`.
 
+**Pe fiecare PC furnizor, rulați comanda din folderul care conține `provider.js`.** Dacă ați descărcat arhiva de pe GitHub și ați extras-o în Downloads, în PowerShell:
+
+```powershell
+cd "$env:USERPROFILE\Downloads\compute-bridge-vnu-hack-main"
+Test-Path .\provider.js
+```
+
+Comanda `Test-Path` trebuie să afișeze `True`. Dacă afișează `False`, localizați folderul în care ați extras arhiva și intrați în el cu `cd`. Nu rulați `node provider.js` din `C:\Windows\System32`: Node caută fișierul în folderul curent.
+
 ## 1. PC-ul care folosește resursele
 
 În terminal, din folderul proiectului, pe Windows, Arch Linux sau alt sistem cu Node.js:
@@ -50,3 +59,4 @@ Estimarea costului este `suma(timp CPU pe slot × preț orar al PC-ului / număr
 - Rulează numai lucrarea fractală inclusă, nu execută cod arbitrar trimis de utilizatori.
 - Nu are plăți reale și nu oferă desktop la distanță.
 - Codul de acces este potrivit doar pentru un demo pe o rețea locală de încredere. Nu publicați portul pe internet.
+- Dacă un cod de acces apare într-o captură de ecran distribuită, opriți și reporniți `server.js` pentru a genera un cod nou; actualizați codul în browser și pe ambele PC-uri furnizoare.
