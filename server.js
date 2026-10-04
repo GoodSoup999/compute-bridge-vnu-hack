@@ -174,6 +174,9 @@ const server = http.createServer(async (req, res) => {
 
     if (req.url === '/api/result' && req.method === 'POST') {
       const body = await readJson(req);
+      if (job && body.jobId === job.id && job.status !== 'running') {
+        return json(res, 409, { error: 'Lucrarea nu mai este activă' });
+      }
       const provider = providers.get(body.providerId);
       const tile = job?.tiles.find(t => t.id === body.taskId);
       if (!provider || !tile || body.jobId !== job.id || job.status !== 'running' || tile.status !== 'assigned' || tile.providerId !== provider.id) {
@@ -216,10 +219,14 @@ const server = http.createServer(async (req, res) => {
 
     if (req.url === '/api/failure' && req.method === 'POST') {
       const body = await readJson(req);
+      const provider = providers.get(body.providerId);
       const tile = job?.tiles.find(t => t.id === body.taskId);
-      if (!tile || body.jobId !== job.id || tile.providerId !== body.providerId) return json(res, 409, { error: 'Sarcină expirată' });
+      if (!provider || !tile || body.jobId !== job.id || job.status !== 'running' ||
+          tile.status !== 'assigned' || tile.providerId !== provider.id) {
+        return json(res, 409, { error: 'Sarcină expirată' });
+      }
       job.status = 'error';
-      job.error = String(body.error || 'Eroare de randare').slice(0, 300);
+      job.error = `${provider.name}: ${String(body.error || 'Eroare de randare')}`.slice(0, 300);
       job.finishedAt = Date.now();
       return json(res, 200, { ok: true });
     }

@@ -127,8 +127,14 @@ def main():
     gold = material("Aur", (0.9, 0.5, 0.06), metallic=0.9, roughness=0.2)
     chrome = material("Crom", (0.82, 0.88, 0.96), metallic=1.0, roughness=0.08)
     glass = material("Sticla", (0.85, 0.96, 1.0), roughness=0.04)
-    glass.node_tree.nodes["Principled BSDF"].inputs["Transmission Weight"].default_value = 0.85
-    glass.node_tree.nodes["Principled BSDF"].inputs["IOR"].default_value = 1.45
+    glass_inputs = glass.node_tree.nodes["Principled BSDF"].inputs
+    transmission = glass_inputs.get("Transmission Weight")
+    if transmission is None:
+        transmission = glass_inputs.get("Transmission")  # Blender 3.6
+    if transmission is None:
+        raise RuntimeError("Blender nu are intrarea Transmission pentru materialul de sticla")
+    transmission.default_value = 0.85
+    glass_inputs["IOR"].default_value = 1.45
     cyan_light = glowing_material("Neon cyan", (0.01, 0.7, 1.0), 5)
     orange_light = glowing_material("Neon portocaliu", (1.0, 0.22, 0.03), 4)
 

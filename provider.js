@@ -125,18 +125,25 @@ async function renderGpuFrame(task) {
 async function runGpuSlot(providerId) {
   for (;;) {
     let task = null;
+    let stage = 'poll';
     try {
       ({ task } = await request(`/api/task?provider=${encodeURIComponent(providerId)}&kind=gpu`));
       if (!task) { await sleep(1200); continue; }
+      stage = 'render';
       const result = await renderGpuFrame(task);
+      stage = 'submit';
       await request('/api/result', 'POST', {
         providerId, jobId: task.jobId, taskId: task.taskId,
         image: result.image, durationMs: result.durationMs, gpuBackend: result.gpuBackend
       });
       console.log(`GPU ${result.gpuBackend}: cadrul ${task.frame + 1}/${task.frames} în ${result.durationMs} ms`);
     } catch (error) {
-      console.error(`GPU: ${error.message}`);
-      if (task) {
+      if (stage === 'submit' && error.message === 'Lucrarea nu mai este activă') {
+        console.log('GPU: cadrul terminat a fost ignorat deoarece lucrarea s-a oprit.');
+      } else {
+        console.error(`GPU: ${error.message}`);
+      }
+      if (task && !(stage === 'submit' && error.message === 'Lucrarea nu mai este activă')) {
         try { await request('/api/failure', 'POST', { providerId, jobId: task.jobId, taskId: task.taskId, error: error.message.slice(0, 300) }); } catch {}
       }
       await sleep(3000);
