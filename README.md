@@ -1,107 +1,233 @@
-# Compute Bridge — prototip VNU Hack
+# Compute Bridge
 
-Două PC-uri furnizoare calculează în paralel, iar al treilea rulează coordonatorul și interfața web. Modul **Animație 3D cu Blender GPU** distribuie cadre între cele două laptopuri și le randează cu Cycles pe NVIDIA OptiX sau CUDA. Modurile **Randare 3D cu ray tracing** și **Imagine fractală** distribuie bucăți din imagine pe CPU. Sarcinile stau într-o coadă comună: PC-ul care termină primul preia imediat următorul cadru sau următoarea bucată. VRAM-ul celor două GPU-uri nu este combinat: fiecare GPU procesează separat cadrele pe care le primește.
+Prototip VNU Hack pentru împărțirea lucrului de calcul între PC-uri cu Windows din aceeași rețea locală. Versiunea **0.2.0**.
 
-> **Varianta cea mai simplă este aplicația:** `ComputeBridge.exe` pe Windows sau `compute-bridge` pe Linux, fără nicio instalare. Coordonatorul se găsește singur în rețea, iar totul se face din interfață. Vezi [Aplicația Compute Bridge](#aplicația-compute-bridge). Pașii de mai jos, din linia de comandă, funcționează în continuare.
+Un PC rulează **coordonatorul**: primește o lucrare, o taie în sarcini și le ține într-o singură coadă. Celelalte PC-uri rulează **conectorul** și oferă procesorul și, dacă au, placa video. Fiecare slot liber cere următoarea sarcină imediat ce o termină pe cea curentă, așa că PC-ul mai rapid preia mai multe. Coordonatorul poate oferi și el putere în același timp.
 
-## Ce trebuie instalat
+Fiecare PC calculează separat: procesoarele și VRAM-ul plăcilor video nu se adună. Fiecare GPU randează cadre întregi, iar fiecare slot CPU calculează benzi întregi din imagine.
 
-- Node.js 20 sau mai nou pe toate cele trei PC-uri. Pe Arch Linux, verificați cu `node --version`; dacă lipsește, instalați cu `sudo pacman -Syu nodejs`. `npm` nu este necesar.
-- Blender instalat pe fiecare PC furnizor care participă la randarea GPU. Dacă nu este în `C:\Program Files\Blender Foundation\Blender ...\blender.exe`, indicați executabilul prin `--blender "C:\cale\blender.exe"`. Coordonatorul nu are nevoie de Blender.
-- Toate PC-urile în aceeași rețea locală. Permiteți accesul la portul TCP 3000 pe PC-ul coordonator, dacă firewall-ul este activ. Pe Windows, acceptați accesul pe rețeaua privată.
-- Copiați acest folder pe fiecare PC. Nu este necesar `npm install`.
+Site și download: **https://node-compute.vercel.app**
 
-**Pe fiecare PC furnizor, rulați comanda din folderul care conține `provider.js`.** Dacă ați descărcat arhiva de pe GitHub și ați extras-o în Downloads, în PowerShell:
+## Descarcă și pornește
+
+Pe [pagina de download](https://node-compute.vercel.app/download) sunt două pachete, ambele pentru **Windows 10 și 11, x64**:
+
+| Pachet | Ce conține |
+| --- | --- |
+| `ComputeBridge-0.2.0-windows-x64.zip` | `ComputeBridge.exe`, cu Node.js inclus. Nu trebuie instalat nimic. |
+| `compute-bridge-0.2.0-source.zip` | Codul sursă și lansatorul `Compute Bridge.cmd`, pentru PC-uri cu Node.js 20+. E aceeași aplicație, utilă dacă antivirusul blochează `.exe`-ul. |
+
+**Prima pornire:**
+
+1. Dezarhivează și dă dublu-clic pe `ComputeBridge.exe`.
+2. Dacă Windows afișează „Windows protected your PC”, apasă *More info*, apoi *Run anyway*. Aplicația nu e semnată digital.
+3. Când firewall-ul cere acces, permite-l în **rețelele private**. Fără asta, celelalte PC-uri nu ajung la coordonator (TCP 3000) și nu îl găsesc în rețea (UDP 39871).
+4. Se deschide o fereastră de consolă. Las-o deschisă: dacă o închizi, aplicația se oprește.
+5. Aplicația se deschide în browser, la `http://127.0.0.1:3210` sau la următorul port liber. Dacă nu se deschide singură, copiază adresa afișată în consolă.
+
+Interfața aplicației e în română și folosește designul NODE.
+
+## Coordonatorul: PC-ul care trimite lucrări
+
+1. În aplicație alege **Folosesc puterea altor PC-uri**, apoi **Pornește coordonatorul**.
+2. Ecranul arată:
+   - **codul de acces**: 24 de caractere în grupuri de câte 4, cu butoane *Ascunde* și *Copiază*;
+   - **adresa în rețea**, de exemplu `192.168.1.10:3000`;
+   - **PC-urile conectate**, actualizate în timp real.
+3. **Deschide panoul de lucru** duce la panoul coordonatorului. Acolo alegi și pornești lucrarea și vezi:
+   - fiecare PC, legat printr-un fir care se aprinde cât are o sarcină;
+   - sarcinile care pleacă și rezultatele care se întorc, ca puncte luminoase pe fire;
+   - coada, colorată pe PC-uri;
+   - imaginea care se compune bandă cu bandă (sau grila de cadre care se umple);
+   - jurnalul;
+   - timpul, ritmul, costul simulat și energia estimată.
+4. **Oferă și puterea acestui PC** conectează și coordonatorul ca furnizor, cu codul deja completat.
+
+Coordonatorul ascultă pe portul TCP 3000. Dacă portul e ocupat, aplicația încearcă porturile până la 3009.
+
+## Conectorul: PC-urile care oferă putere
+
+În aplicație alege **Ofer putere de calcul** și parcurge trei pași:
+
+1. **Alege coordonatorul.** Coordonatorii din aceeași rețea apar singuri în listă: fiecare trimite la 2 secunde un mesaj UDP pe portul 39871, cu numele și portul lui, niciodată cu codul. Dacă nu apare, scrie adresa afișată pe coordonator.
+2. **Scrie codul de acces.**
+3. **Alege ce oferă acest PC:**
+   - numele PC-ului;
+   - câte sloturi CPU (între 1 și 12, cel mult câte fire are procesorul);
+   - dacă randează cadre Blender pe placa video;
+   - placa video și memoria ei;
+   - două ipoteze de demo, folosite doar pentru costul simulat: tariful în RON pe oră și puterea în W.
+
+**Randarea pe GPU** se poate activa doar dacă aplicația găsește Blender (în `C:\Program Files\Blender Foundation`) și o placă NVIDIA. Scriptul de randare folosește Cycles cu OptiX sau CUDA.
+
+**Detectarea hardware-ului.** Aplicația citește singură procesorul, memoria și plăcile video, cu `nvidia-smi` pe NVIDIA. Pentru alte plăci, Windows raportează cel mult 4 GB de VRAM, așa că aplicația te roagă să corectezi valoarea.
+
+**Cât PC-ul lucrează,** vezi fiecare slot cu sarcina lui, sarcinile terminate, timpul de calcul, media pe sarcină și un jurnal.
+
+**Oprirea:** *Oprește partajarea* face ca PC-ul să apară imediat offline pe coordonator, iar sarcinile la care lucra revin în coadă pentru celelalte PC-uri. Dacă un PC dispare fără să se oprească din aplicație, sarcinile lui revin în coadă după 2 minute (CPU) sau 5 minute (GPU). Un PC apare offline după 15 secunde fără contact.
+
+**Dacă repornește coordonatorul,** conectorul se reînregistrează singur.
+
+## Lucrările
+
+Sunt doar trei lucrări incluse, iar coordonatorul acceptă o singură lucrare activă odată.
+
+| Lucrare | Unde rulează | Limite | Se împarte în |
+| --- | --- | --- | --- |
+| Animație 3D cu Blender | GPU NVIDIA (Cycles cu OptiX sau CUDA), cu Blender instalat pe fiecare PC care randează | 2–96 cadre, 200–1600 × 200–1000 px, 8–512 mostre per cadru, cel mult 80 de milioane de pixeli în toată animația | cadre întregi |
+| Randare 3D cu ray tracing | CPU | 200–1600 × 200–1000 px, 1–1024 mostre per pixel | benzi de 16 rânduri |
+| Imagine fractală | CPU | 200–3000 × 200–2000 px, 100–10.000 iterații | benzi de 32 de rânduri |
+
+**Scena Blender** e procedurală și identică pe fiecare PC. Are o sferă de sticlă cu miez coral pe o bază cromată, inele aurii și de neon, 20 de coloane cu lumini în vârf, 18 sfere care orbitează, trei lumini și o cameră care se rotește în jurul scenei, cu profunzime de câmp. Nu se pot trimite fișiere `.blend` proprii.
+
+**Erori pe GPU:** dacă Blender eșuează la un cadru, lucrarea se oprește și afișează eroarea PC-ului respectiv. Un cadru e anulat după 4 minute.
+
+**La final** primești:
+- pentru CPU: imaginea PNG, cu buton de descărcare;
+- pentru GPU: un player de animație, cu viteza reglabilă între 1 și 30 de cadre pe secundă.
+
+**Exemplu măsurat**, ca orientare, nu ca benchmark: pe un singur PC (i5-12400F) cu doi conectori, PC-1 cu 2 sloturi și PC-2 cu 4 sloturi, care își împart același procesor:
+
+| Lucrare | Timp total | Benzi calculate |
+| --- | --- | --- |
+| Ray tracing 1600 × 900, 320 de mostre (57 de benzi) | 28,8 s | PC-2: 39, PC-1: 18 |
+| Fractal 2400 × 1600, 5000 de iterații | 2,5 s | |
+
+## Demo pentru juriu
+
+1. **Pe PC-ul coordonator:** pornește aplicația, alege *Folosesc puterea altor PC-uri*, apoi *Pornește coordonatorul*.
+2. **Pe fiecare laptop cu NVIDIA și Blender:**
+   1. Pornește aplicația și alege *Ofer putere de calcul*.
+   2. Alege coordonatorul din listă și scrie codul.
+   3. Lasă activă opțiunea *Randează cadre Blender pe placa video*, apoi apasă *Conectează acest PC*.
+3. **Pe coordonator:** apasă *Deschide panoul de lucru*, alege *Animație GPU* și una dintre setările rapide:
+
+   | Setare rapidă | Cadre | Rezoluție | Mostre |
+   | --- | --- | --- | --- |
+   | Demo scurt | 16 | 640 × 360 | 32 |
+   | Implicit | 48 | 960 × 540 | 96 |
+   | Test greu | 64 | 1280 × 720 | 128 |
+
+   Primul cadru poate dura mai mult, din cauza inițializării Blender și OptiX.
+4. **Arată în panou:**
+   - firele aprinse spre PC-urile care lucrează;
+   - grila de cadre care se umple, colorată după PC-ul care a randat fiecare cadru;
+   - câte cadre a făcut fiecare PC. Distribuția nu e fixă: PC-ul mai rapid ia mai multe cadre.
+5. **La final:** arată animația, timpul, costul simulat și energia estimată. Apoi demonstrează modul CPU (ray tracing sau fractal), pentru comparație.
+6. **Pentru o comparație de timp:** oprește un PC din aplicația lui (*Oprește partajarea*), pornește aceeași lucrare și compară. Fă comparația înainte de prezentare și notează rezultatele reale.
+
+## Costul și energia (simulate)
+
+Formulele:
+- **Pentru CPU:** costul este `suma(timp pe slot × tariful orar al PC-ului ÷ numărul de sloturi)`.
+- **Pentru GPU:** costul este `suma(timp de randare × tariful orar al PC-ului)`.
+- **Energia** folosește aceleași durate și puterea introdusă.
+
+Tariful și puterea sunt **ipoteze introduse de utilizator**, nu măsurători sau prețuri reale. Nu există plăți.
+
+Un produs real ar avea nevoie de măsurarea consumului, plăți, izolarea sarcinilor, verificarea rezultatelor și protecția datelor.
+
+## Linia de comandă (fără aplicație)
+
+Din codul sursă, cu Node.js 20+, fără `npm install`. Comenzile se rulează în PowerShell, din folderul care conține `server.js`:
 
 ```powershell
 cd "$env:USERPROFILE\Downloads\compute-bridge-vnu-hack-main"
 Test-Path .\provider.js
 ```
 
-Comanda `Test-Path` trebuie să afișeze `True`. Dacă afișează `False`, localizați folderul în care ați extras arhiva și intrați în el cu `cd`. Nu rulați `node provider.js` din `C:\Windows\System32`: Node caută fișierul în folderul curent.
+`Test-Path` trebuie să afișeze `True`. Nu rula comenzile din `C:\Windows\System32`: Node caută fișierele în folderul curent.
 
-## 1. PC-ul care folosește resursele
-
-În terminal, din folderul proiectului, pe Windows, Arch Linux sau alt sistem cu Node.js:
+**Coordonatorul:**
 
 ```powershell
 node server.js
 ```
 
-Terminalul afișează un **cod de acces**. Păstrați terminalul deschis. Aflați adresa IPv4 a PC-ului cu `ipconfig` pe Windows sau `ip -4 addr` pe Arch Linux. Deschideți `http://localhost:3000` în browser și introduceți codul.
+Comanda afișează adresa și **codul de acces**. Adresa IPv4 a PC-ului o afli cu `ipconfig`. Panoul live e la `http://localhost:3000/node`, iar pagina simplă inițială la `http://localhost:3000`. Opțional, variabilele de mediu `PORT` și `BRIDGE_TOKEN` fixează portul și codul.
 
-## 2. PC-ul 1 — RTX 3050
-
-Înlocuiți `192.168.1.10` cu adresa IPv4 a PC-ului coordonator, chiar dacă acesta rulează Arch Linux, și `COD` cu codul afișat de server:
+**Furnizorii**, de exemplu laptopurile cu RTX 3050 și RTX 5060. Înlocuiește `192.168.1.10` cu adresa coordonatorului și `COD` cu codul lui:
 
 ```powershell
 node provider.js --server http://192.168.1.10:3000 --token COD --name PC-3050 --slots 4 --ram 16 --gpu "RTX 3050 Laptop" --vram 4 --watts 120 --rate 2
-```
-
-## 3. PC-ul 2 — RTX 5060
-
-```powershell
 node provider.js --server http://192.168.1.10:3000 --token COD --name PC-5060 --slots 6 --ram 16 --gpu "RTX 5060 Laptop" --vram 8 --watts 160 --rate 3
 ```
 
-Valorile `--slots`, `--watts` și `--rate` sunt configurabile. `slots` este numărul de lucrători CPU simultani; fiecare PC poate executa un cadru GPU simultan. `watts` și `rate` sunt **ipoteze de demo**, nu măsurători sau prețuri reale. La conectare, terminalul furnizorului trebuie să afișeze calea Blender după `randare Blender GPU:`. Dacă arată `indisponibilă`, verificați instalarea Blender și parametrul `--vram`.
+**Opțiunile `provider.js`:**
+- `--slots` este numărul de lucrători CPU simultani. Fiecare PC randează câte un singur cadru GPU odată.
+- `--watts` și `--rate` sunt ipoteze de demo.
+- **Cadrele GPU** cer Blender și `--vram` mai mare ca 0. Dacă Blender nu e în `C:\Program Files\Blender Foundation`, indică-l cu `--blender "C:\cale\blender.exe"`. La conectare, terminalul afișează calea Blender după `randare Blender GPU:`; dacă scrie `indisponibilă`, verifică Blender și `--vram`.
+- **Ctrl+C** oprește furnizorul, iar coordonatorul îl vede imediat offline.
 
-Pe un PC Windows cu Blender și NVIDIA puteți rula `node test/gpu-smoke.js` din folderul proiectului. Testul pornește temporar două procese furnizor pe același GPU, verifică distribuția a două cadre și apoi verifică modul CPU. Acest test nu confirmă performanța celor două laptopuri fizice.
-Testul `node test/scheduling.js` verifică separat că un furnizor rapid poate prelua mai multe cadre și bucăți CPU din coada comună.
+**Alte moduri de pornire:**
+- `node app.js` pornește aplicația din sursă.
+- `node scripts/local.js` pornește un coordonator și doi furnizori pe același PC, pentru test, și afișează linkul spre panou.
 
-## Dacă furnizorul afișează `fetch failed`
+## Dacă un PC nu se poate conecta
 
-Înseamnă că PC-ul furnizor nu poate deschide conexiunea către server. Verificați în această ordine:
+1. **Pe coordonator,** aplicația (sau `node server.js`) trebuie să ruleze și să afișeze codul și adresa.
+2. **Ambele PC-uri trebuie să fie în aceeași rețea** (același router sau Wi-Fi).
+3. **Pe PC-ul furnizor**, în PowerShell: `Test-NetConnection ADRESA_IP -Port 3000`. Dacă `PingSucceeded` este `True`, dar `TcpTestSucceeded` este `False`, verifică firewall-ul de pe coordonator: aplicația trebuie permisă în rețelele private. Nu dezactiva firewall-ul complet.
+4. **Dacă aplicația spune că acel cod nu e corect,** copiază-l din nou de pe coordonator. Codul se schimbă la fiecare pornire.
+5. **Dacă opțiunea GPU e dezactivată,** aplicația scrie motivul: Blender nu e instalat sau placa nu e NVIDIA.
 
-1. Pe PC-ul coordonator, `node server.js` trebuie să rămână pornit și să afișeze adresa locală și codul de acces. Pe Arch Linux, rulați în alt terminal `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/`; rezultatul așteptat este `200`.
-2. Pe Arch Linux, `ss -lntp | grep ':3000'` trebuie să arate că Node ascultă pe `0.0.0.0:3000`. Confirmați adresa IPv4 actuală cu `ip -4 addr`.
-3. Pe Windows, rulați `Test-NetConnection ADRESA_IP -Port 3000`. Dacă `PingSucceeded` este `True`, dar `TcpTestSucceeded` este `False`, verificați firewall-ul de pe PC-ul coordonator și regulile rețelei pentru portul TCP 3000. Nu dezactivați firewall-ul integral.
-4. După ce `TcpTestSucceeded` este `True`, porniți din nou `provider.js` folosind adresa și codul de acces actuale.
+## Pentru dezvoltatori
 
-## Demo pentru juriu
-
-1. Arătați cele două PC-uri conectate și resursele lor în interfață.
-2. Selectați „Animație 3D cu Blender GPU”. Valorile implicite sunt acum **48 de cadre, 960 × 540 și 96 de mostre per cadru**. Scena conține sticlă, suprafețe metalice, reflexii, lumini colorate, 20 de coloane și obiecte animate. Pentru un demo scurt, folosiți 16 cadre, 640 × 360 și 32 de mostre; pentru un test mai greu, 64 de cadre, 1280 × 720 și 128 de mostre. Primul cadru poate dura mai mult din cauza inițializării Blender/OptiX.
-3. Arătați progresul și câte cadre a randat fiecare PC. PC-ul mai rapid poate prelua mai multe cadre; distribuția nu este fixată la cadre pare/impare. Terminalele furnizorilor arată `GPU OPTIX:...` sau `GPU CUDA:...` după fiecare cadru.
-4. La final, arătați animația, timpul, costul simulat și energia estimată. Reglați viteza de redare cu cursorul de sub rezultat, între 1 și 30 cadre/secundă. Demonstrați apoi și modul CPU pentru comparație.
-5. Pentru comparație, opriți un furnizor, așteptați să apară offline (aproximativ 15 secunde), apoi porniți aceeași lucrare și comparați timpul. Faceți această comparație înainte de prezentare și notați rezultatele reale.
-
-Pentru CPU, estimarea costului este `suma(timp pe slot × preț orar al PC-ului / număr de sloturi)`. Pentru GPU, este `suma(timp de randare × preț orar al PC-ului)`. Energia folosește aceleași durate și puterea introdusă manual. Un produs real ar avea nevoie de măsurare de consum, plăți, izolare a sarcinilor, verificarea rezultatelor și protecția datelor.
-
-**După actualizarea proiectului:** opriți `server.js` și ambele procese `provider.js`, faceți `git pull` pe toate cele trei PC-uri (sau descărcați din nou arhiva ZIP), apoi porniți serverul și furnizorii cu noul cod de acces. Versiunile vechi ale `provider.js` vor primi un mesaj de actualizare.
-
-## Aplicația Compute Bridge
-
-Cel mai simplu mod de a folosi proiectul este aplicația. Pe Windows și Linux nu trebuie instalat nimic, nici măcar Node.js. Pachetele se descarcă de pe [node-compute.vercel.app/download](https://node-compute.vercel.app/download) sau se construiesc cu `node scripts/build.js`.
-
-| Pachet | Ce conține |
+| Fișier | Rol |
 | --- | --- |
-| `ComputeBridge-<versiune>-windows-x64.zip` | `ComputeBridge.exe`, cu Node inclus. Dublu-clic. |
-| `compute-bridge-<versiune>-linux-x64.tar.gz` | `compute-bridge`, cu Node inclus. `./compute-bridge` |
-| `compute-bridge-<versiune>-portable.zip` | Codul sursă și lansatoarele, pentru macOS sau orice sistem cu Node.js 20+. |
+| `app.js` | Aplicația desktop: server local pe 127.0.0.1, care răspunde doar cu o cheie generată la fiecare pornire. Pornește coordonatorul și conectorul și deschide fereastra în browser. |
+| `public/app.html` | Interfața aplicației: start, coordonator, conector. |
+| `server.js` | Coordonatorul. Exportă `startServer()`; rulat direct, se comportă ca înainte. Trimite semnalul de descoperire. |
+| `public/node.html` | Panoul live al coordonatorului (`/node`). |
+| `public/index.html` | Pagina simplă inițială (`/`). |
+| `public/ui.css` | Designul comun, după sistemul NODE. Fonturile din `public/fonts` sunt sub SIL Open Font License. |
+| `lib/connector.js` | Logica furnizorului, folosită de `provider.js` și de aplicație. |
+| `provider.js` | Furnizorul din linia de comandă. |
+| `lib/discovery.js` | Descoperirea în rețea (UDP 39871). |
+| `lib/system.js` | Detectarea procesorului, plăcilor video și a Blender. |
+| `lib/assets.js` | Fișierele aplicației, citite de pe disc sau din executabil. |
+| `lib/blender_gpu.py` | Scena Blender. |
+| `lib/raytrace.js` | Lucrarea de ray tracing pe CPU. |
+| `lib/fractal.js` | Lucrarea fractal pe CPU. |
+| `lib/png.js` | Codificarea imaginilor PNG. |
 
-La pornire se deschide fereastra aplicației în browser, cu un ecran de start în designul NODE:
+**API-ul coordonatorului.** Toate rutele `/api/*` cer antetul `x-bridge-token` cu codul de acces.
 
-- **Folosesc puterea altor PC-uri** pornește coordonatorul pe acest PC. Ecranul afișează codul de acces, adresa din rețea și PC-urile conectate. Butonul *Deschide panoul de lucru* duce la vizualizarea live de la `/node`: firele către fiecare PC, coada, imaginea care se compune și jurnalul.
-- **Ofer putere de calcul** conectează acest PC la un coordonator, în trei pași. Coordonatorii din aceeași rețea apar singuri în listă, prin semnal UDP pe portul 39871. Adresa se poate scrie și de mână. Aplicația citește procesorul, placa video și Blender, iar tu alegi câte fire oferi și dacă randezi pe GPU. Cât PC-ul lucrează, vezi fiecare slot cu sarcina lui, statisticile și un jurnal. *Oprește partajarea* trimite sarcinile neterminate înapoi în coadă, pentru celelalte PC-uri.
+- **Rutele panoului:**
+  - `GET /api/state`: furnizorii, lucrarea curentă cu starea și PC-ul fiecărei sarcini, plus numele și adresele coordonatorului, fără cod;
+  - `POST /api/job` cu `{ mode: "blender" | "raytrace" | "fractal", width, height, samples | iterations, frames }`;
+  - `POST /api/cancel`;
+  - `GET /api/image`: imaginea CPU finală;
+  - `GET /api/frame/:i`: un cadru GPU;
+  - `GET /api/preview`: imaginea CPU parțială, cel mult 960 px lățime.
+- **Rutele furnizorilor:**
+  - `POST /api/register` (protocolul 3);
+  - `GET /api/task?provider=ID&kind=cpu|gpu`;
+  - `POST /api/result`;
+  - `POST /api/failure`;
+  - `POST /api/leave`.
 
-Pe Windows, la prima pornire, SmartScreen poate afișa „Windows protected your PC”, pentru că aplicația nu e semnată digital. Se apasă *More info*, apoi *Run anyway*. La cererea firewall-ului se permite accesul în rețelele private.
+**Teste:** `npm test` rulează:
+- `test/scheduling.js`: coada comună dă mai multe sarcini PC-ului mai rapid;
+- `test/error-report.js`: o eroare GPU rămâne vizibilă;
+- `test/connector.js`: conectorul aplicației lucrează, se oprește curat și explică erorile.
 
-Din folderul proiectului, aplicația pornește și cu `node app.js`. Pentru test pe un singur calculator, `node scripts/local.js` pornește coordonatorul și două PC-uri furnizoare locale și afișează linkul spre panou.
+Pe un PC cu Blender și NVIDIA există și `node test/gpu-smoke.js`, care verifică două cadre GPU pe doi furnizori și apoi modul CPU.
 
-**Build:** `node scripts/build.js` creează cele trei pachete și `manifest.json` (mărimi și SHA-256) în `dist/`. Cu `--publish <folder>` le copiază acolo, de exemplu în `apps/web/public/downloads` din repo-ul site-ului NODE. Executabilele sunt construite pe Windows x64. Aplicația e strânsă într-un singur script, apoi transformată în blob [Node SEA](https://nodejs.org/api/single-executable-applications.html) și injectată cu `postject` în binarul oficial Node, de aceeași versiune cu cea folosită la build. Binarul de Linux se descarcă de pe nodejs.org și se verifică după SHA-256.
+**Build:** `node scripts/build.js` creează cele două pachete și `manifest.json` (mărimi și SHA-256) în `dist/`; se rulează pe Windows x64.
+- Aplicația e strânsă într-un singur script, transformată în blob [Node SEA](https://nodejs.org/api/single-executable-applications.html) și injectată cu `postject` în binarul Node.js al PC-ului care face build-ul.
+- Cu `--publish <folder>`, pachetele se copiază acolo. Pentru site: `node scripts/build.js --publish ../apps/web/public/downloads`, apoi, din repo-ul site-ului, `npm run deploy -w apps/web`.
 
-**Teste:** `node test/scheduling.js`, `node test/error-report.js`, `node test/connector.js` (conectorul aplicației: lucru, oprire curată, erori explicate) și, pe un PC cu Blender și NVIDIA, `node test/gpu-smoke.js`.
-
-**Pentru dezvoltatori:** `lib/connector.js` conține logica furnizorului, folosită și de `provider.js` și de aplicație. `server.js` exportă `startServer()`. `/api/state` include `job.tiles`, cu starea și PC-ul fiecărei sarcini, și `coordinator`, cu numele și adresele, fără cod. `/api/preview` dă imaginea parțială în modurile CPU, iar `/api/leave` scoate imediat un PC și îi pune sarcinile înapoi în coadă. Fonturile din `public/fonts` sunt sub licența SIL Open Font License.
+**După o actualizare,** pune aceeași versiune pe toate PC-urile: aplicația nouă, sau `git pull` pentru linia de comandă. Un furnizor cu protocol vechi primește mesajul să se actualizeze.
 
 ## Limitele prototipului
 
-- Acceptă o singură lucrare activă. Rezultatul precedent rămâne vizibil până pornește o lucrare nouă.
-- Rulează numai cele trei lucrări incluse, nu execută cod arbitrar trimis de utilizatori.
-- Modul GPU creează aceeași scenă procedurală pe fiecare furnizor și distribuie cadrele animației; nu trimite fișiere Blender personalizate.
-- Modul GPU permite 2–96 de cadre și 8–512 mostre per cadru, cu maximum 80 milioane pixeli în toată animația pentru a limita memoria necesară pe coordonator. O lucrare cu multe cadre poate dura câteva minute sau mai mult, în funcție de GPU și setări.
-- Butonul „Oprește lucrarea” oprește distribuirea cadrelor noi. Un cadru deja pornit pe un furnizor se poate termina înainte ca acel PC să accepte altă lucrare.
-- Nu are plăți reale și nu oferă desktop la distanță.
-- Codul de acces este potrivit doar pentru un demo pe o rețea locală de încredere. Nu publicați portul pe internet.
-- Dacă un cod de acces apare într-o captură de ecran distribuită, opriți și reporniți `server.js` pentru a genera un cod nou; actualizați codul în browser și pe ambele PC-uri furnizoare.
+- **O singură lucrare activă odată.** Rezultatul precedent rămâne vizibil până pornește una nouă.
+- **Rulează doar cele trei lucrări incluse.** Nu execută cod sau fișiere trimise de utilizatori, iar modul GPU nu primește fișiere Blender proprii.
+- **Randarea pe GPU cere NVIDIA.** VRAM-ul nu se combină între PC-uri: fiecare GPU randează separat cadrele lui.
+- **Modul GPU are limite:** cel mult 80 de milioane de pixeli pe animație, ca să încapă în memoria coordonatorului. O lucrare mare poate dura minute.
+- **„Oprește lucrarea” nu întrerupe sarcinile deja pornite.** Oprește doar distribuirea sarcinilor noi; o sarcină în curs se poate termina.
+- **Nimic nu se păstrează după oprirea coordonatorului.** Lucrările și rezultatele stau doar în memoria lui.
+- **Fără conturi, plăți sau desktop la distanță.** Funcționează doar în rețeaua locală.
+- **Codul de acces e potrivit doar pentru o rețea locală de încredere.** Nu expune portul pe internet. Dacă apare într-o captură de ecran publică, repornește coordonatorul ca să primești alt cod.
+- **Executabilul nu e semnat digital.** Doar pentru Windows 10 și 11, x64.

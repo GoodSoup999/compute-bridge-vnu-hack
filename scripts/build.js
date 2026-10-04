@@ -1,11 +1,10 @@
-// Builds the downloadable packages into dist/:
-//   ComputeBridge-<v>-windows-x64.zip    single executable, Node included
-//   compute-bridge-<v>-linux-x64.tar.gz  single executable, Node included
-//   compute-bridge-<v>-portable.zip      the source with launchers, needs Node.js 20+ (macOS and anything else)
-//   manifest.json                        sizes and SHA-256, read by the NODE website's download page
-// Usage: node scripts/build.js [--publish <folder>]   (copies the packages and manifest there)
-// The executables use Node's single executable applications (SEA): the app is bundled into one script,
-// turned into a blob and injected into an official Node binary with postject.
+// Builds the Windows downloads into dist/:
+//   ComputeBridge-<v>-windows-x64.zip   ComputeBridge.exe, a single executable with Node included
+//   compute-bridge-<v>-source.zip       the source with a double-click launcher, for Windows PCs with Node.js 20+
+//   manifest.json                       sizes and SHA-256, read by the NODE website's download page
+// Usage (on Windows x64): node scripts/build.js [--publish <folder>]   (copies the packages and manifest there)
+// The executable uses Node's single executable applications (SEA): the app is bundled into one script,
+// turned into a blob and injected into this machine's official Node binary with postject.
 const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
@@ -14,9 +13,7 @@ const { execFileSync, execSync } = require('node:child_process');
 
 const root = path.join(__dirname, '..');
 const dist = path.join(root, 'dist');
-const cache = path.join(dist, 'cache');
 const VERSION = require('../lib/version');
-const NODE_VERSION = process.versions.node; // the blob must be injected into the same Node version that made it
 const FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
 const arg = name => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : null; };
 const step = text => console.log(`\n· ${text}`);
@@ -68,7 +65,7 @@ function bundle(entry) {
 const CRC = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
 function crc32(buffer) { let c = 0xffffffff; for (const byte of buffer) c = CRC[(c ^ byte) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
 
-// entries: [{ name, data, mode }]. Unix modes are kept, so launchers stay executable on macOS and Linux.
+// entries: [{ name, data, mode }]. Deflate where it helps, store otherwise.
 function zip(entries) {
   const locals = [], centrals = [];
   let offset = 0;
@@ -103,60 +100,6 @@ function zip(entries) {
   return Buffer.concat([...locals, ...centrals, end]);
 }
 
-function tarGz(entries) {
-  const blocks = [];
-  const mtime = Math.floor(Date.now() / 1000);
-  for (const { name, data, mode = 0o644 } of entries) {
-    const header = Buffer.alloc(512);
-    header.write(name, 0, 100, 'utf8');
-    header.write(`${mode.toString(8).padStart(7, '0')}\0`, 100);
-    header.write('0000000\0', 108); header.write('0000000\0', 116);
-    header.write(`${data.length.toString(8).padStart(11, '0')}\0`, 124);
-    header.write(`${mtime.toString(8).padStart(11, '0')}\0`, 136);
-    header.fill(' ', 148, 156);
-    header.write('0', 156); header.write('ustar\0', 257); header.write('00', 263);
-    let sum = 0; for (const byte of header) sum += byte;
-    header.write(`${sum.toString(8).padStart(6, '0')}\0 `, 148);
-    blocks.push(header, data, Buffer.alloc((512 - (data.length % 512)) % 512));
-  }
-  blocks.push(Buffer.alloc(1024));
-  return zlib.gzipSync(Buffer.concat(blocks), { level: 9 });
-}
-
-function untarFile(gz, wanted) {
-  const tar = zlib.gunzipSync(gz);
-  for (let offset = 0; offset + 512 <= tar.length;) {
-    const name = tar.toString('utf8', offset, offset + 100).replace(/\0.*$/s, '');
-    if (!name) break;
-    const size = parseInt(tar.toString('utf8', offset + 124, offset + 136).replace(/\0.*$/s, '').trim(), 8) || 0;
-    if (name === wanted) return tar.subarray(offset + 512, offset + 512 + size);
-    offset += 512 + Math.ceil(size / 512) * 512;
-  }
-  throw new Error(`${wanted} lipsește din arhivă`);
-}
-
-// ------------------------------------------------------------------- node
-
-async function download(url, file) {
-  if (fs.existsSync(file)) return fs.readFileSync(file);
-  console.log(`  descarc ${url}`);
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-  const data = Buffer.from(await response.arrayBuffer());
-  fs.writeFileSync(file, data);
-  return data;
-}
-
-async function officialNode(target) {
-  const name = `node-v${NODE_VERSION}-${target}`;
-  const sums = String(await download(`https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt`, path.join(cache, `SHASUMS256-${NODE_VERSION}.txt`)));
-  const archive = await download(`https://nodejs.org/dist/v${NODE_VERSION}/${name}.tar.gz`, path.join(cache, `${name}.tar.gz`));
-  const expected = sums.split('\n').find(line => line.endsWith(`  ${name}.tar.gz`))?.split(' ')[0];
-  const actual = crypto.createHash('sha256').update(archive).digest('hex');
-  if (expected !== actual) throw new Error(`${name}.tar.gz: SHA-256 nu corespunde cu nodejs.org`);
-  return untarFile(archive, `${name}/bin/node`);
-}
-
 function inject(binary, blob) {
   execSync(`npx --yes postject@1.0.0-alpha.6 "${binary}" NODE_SEA_BLOB "${blob}" --sentinel-fuse ${FUSE}`, { stdio: 'inherit' });
 }
@@ -175,27 +118,13 @@ permite accesul în rețelele private.
 Un PC alege „Folosesc puterea altor PC-uri” (coordonatorul). Celelalte aleg „Ofer putere de calcul”,
 îl găsesc în rețea și scriu codul de acces afișat de el.
 `;
-const README_LINUX = `Compute Bridge ${VERSION}
+const README_SOURCE = `Compute Bridge ${VERSION}, pachetul sursă pentru Windows
 
-Pornește:  ./compute-bridge
-Aplicația se deschide în browser. Dacă nu se deschide singură, copiază adresa afișată în terminal.
-Opțiuni: --port 3210 (fereastra aplicației), --no-open.
+Varianta pentru PC-uri care au Node.js 20 sau mai nou (https://nodejs.org), de exemplu dacă
+antivirusul nu lasă ComputeBridge.exe să pornească. Face exact același lucru.
 
-Un PC alege „Folosesc puterea altor PC-uri” (coordonatorul). Celelalte aleg „Ofer putere de calcul”,
-îl găsesc în rețea și scriu codul de acces afișat de el. Coordonatorul ascultă pe portul TCP 3000,
-iar descoperirea în rețea folosește UDP 39871.
-`;
-const README_PORTABLE = `Compute Bridge ${VERSION}, pachet portabil
-
-Are nevoie de Node.js 20 sau mai nou: https://nodejs.org
-
-Pornește:
-  Windows: dublu-clic pe „Compute Bridge.cmd”
-  macOS:   clic dreapta pe „Compute Bridge.command”, apoi Open (doar prima dată)
-  Linux:   ./compute-bridge.sh
-  oricare: node app.js
-
-Linia de comandă de dinainte merge în continuare: node server.js și node provider.js (vezi README.md).
+Pornește: dublu-clic pe „Compute Bridge.cmd” (sau, în PowerShell, din acest folder: node app.js).
+Linia de comandă merge în continuare: node server.js și node provider.js (vezi README.md).
 `;
 const LAUNCH_CMD = `@echo off\r
 title Compute Bridge\r
@@ -210,19 +139,10 @@ if errorlevel 1 (\r
 node app.js %*\r
 if errorlevel 1 pause\r
 `;
-const LAUNCH_SH = `#!/bin/sh
-cd "$(dirname "$0")" || exit 1
-if ! command -v node >/dev/null 2>&1; then
-  echo "Compute Bridge are nevoie de Node.js 20 sau mai nou: https://nodejs.org"
-  exit 1
-fi
-exec node app.js "$@"
-`;
-
 // ------------------------------------------------------------------ build
 
 (async () => {
-  fs.mkdirSync(cache, { recursive: true });
+  fs.mkdirSync(dist, { recursive: true });
   const work = path.join(dist, 'work');
   fs.rmSync(work, { recursive: true, force: true });
   fs.mkdirSync(work, { recursive: true });
@@ -258,20 +178,8 @@ exec node app.js "$@"
   ]));
   outputs.push({ id: 'windows-x64', os: 'windows', label: 'Windows 10 and 11, x64', file: winZip, needsNode: false });
 
-  step('Linux x64');
-  const linuxBin = path.join(work, 'compute-bridge');
-  fs.writeFileSync(linuxBin, await officialNode('linux-x64'));
-  inject(linuxBin, blob);
-  const linuxDir = `compute-bridge-${VERSION}-linux-x64`;
-  const linuxTar = `${linuxDir}.tar.gz`;
-  fs.writeFileSync(path.join(dist, linuxTar), tarGz([
-    { name: `${linuxDir}/compute-bridge`, data: fs.readFileSync(linuxBin), mode: 0o755 },
-    { name: `${linuxDir}/README.txt`, data: Buffer.from(README_LINUX) }
-  ]));
-  outputs.push({ id: 'linux-x64', os: 'linux', label: 'Linux, x64', file: linuxTar, needsNode: false });
-
-  step('Portabil');
-  const portableDir = `compute-bridge-${VERSION}-portable`;
+  step('Pachet sursă');
+  const portableDir = `compute-bridge-${VERSION}-source`;
   const files = ['app.js', 'server.js', 'provider.js', 'package.json', 'README.md', 'scripts/local.js',
     ...fs.readdirSync(path.join(root, 'lib')).map(f => `lib/${f}`),
     ...fs.readdirSync(path.join(root, 'public'), { recursive: true }).map(f => `public/${String(f).split(path.sep).join('/')}`)
@@ -280,11 +188,9 @@ exec node app.js "$@"
   fs.writeFileSync(path.join(dist, portableZip), zip([
     ...files.map(f => ({ name: `${portableDir}/${f}`, data: fs.readFileSync(path.join(root, f)) })),
     { name: `${portableDir}/Compute Bridge.cmd`, data: Buffer.from(LAUNCH_CMD) },
-    { name: `${portableDir}/Compute Bridge.command`, data: Buffer.from(LAUNCH_SH), mode: 0o755 },
-    { name: `${portableDir}/compute-bridge.sh`, data: Buffer.from(LAUNCH_SH), mode: 0o755 },
-    { name: `${portableDir}/CITESTE-MA.txt`, data: Buffer.from(README_PORTABLE) }
+    { name: `${portableDir}/Citeste-ma.txt`, data: Buffer.from(README_SOURCE.replace(/\n/g, '\r\n')) }
   ]));
-  outputs.push({ id: 'portable', os: 'any', label: 'Portable: macOS or any OS with Node.js 20+', file: portableZip, needsNode: true });
+  outputs.push({ id: 'windows-source', os: 'windows', label: 'Windows, source package (needs Node.js 20+)', file: portableZip, needsNode: true });
 
   step('Manifest');
   const manifest = {
