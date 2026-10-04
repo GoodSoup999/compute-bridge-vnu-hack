@@ -1,0 +1,120 @@
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { createHubServer } = require('../cloud/server');
+const { RemoteAgent, request, hubUrl } = require('../lib/remote-agent');
+const { Hub } = require('../cloud/service');
+const fractal = require('../lib/fractal');
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function main() {
+  assert.equal(hubUrl('https://example.com'), 'https://example.com');
+  assert.throws(() => hubUrl('http://example.com')); assert.throws(() => hubUrl('https://user:pass@example.com'));
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'compute-bridge-hub-test-'));
+  const file = path.join(temp, 'hub.sqlite'); let now = Date.now();
+  let app = createHubServer({ file, clock: () => now, initialCredits: 100, approveDevices: true });
+  await new Promise(r => app.server.listen(0, '127.0.0.1', r));
+  const base = 'http://127.0.0.1:' + app.server.address().port;
+  const api = (token, route, method = 'POST', data = {}) => request(base, token, '/v1/' + route, method, method === 'GET' ? undefined : data);
+  let agent;
+  try {
+    assert.throws(() => new Hub({ file }), /folosită/);
+    const users = [];
+    for (const name of ['alice', 'bob', 'carol']) {
+      const { token } = await api('', 'auth/register', 'POST', { email: `${name}@example.com`, password: 'strong-password-123', name });
+      const state = await api(token, 'state', 'GET'); users.push({ token, id: state.user.id, name });
+    }
+    const [a, b, c] = users;
+    await assert.rejects(api('', 'state', 'GET'), e => e.status === 401);
+    await assert.rejects(api('', 'auth/login', 'POST', { email: 'alice@example.com', password: 'wrong-password-123' }), e => e.status === 401);
+    const p = await api(a.token, 'parties', 'POST', { name: 'Trusted friends' });
+    await api(a.token, 'parties/invite', 'POST', { partyId: p.id, email: 'bob@example.com' });
+    const invitation = (await api(b.token, 'state', 'GET')).invites[0];
+    await assert.rejects(api(c.token, 'parties/respond', 'POST', { inviteId: invitation.id, accept: true }), e => e.status === 404);
+    await api(b.token, 'parties/respond', 'POST', { inviteId: invitation.id, accept: true });
+    const config = { name: 'PC', slots: 2, cpuPercent: 75, ramGb: 4, vramGb: 0, gpuRender: false, until: now + 3600000, price: 1 };
+    const register = (u, extra = {}) => api(u.token, 'devices', 'POST', { ...config, clientKey: crypto.randomBytes(32).toString('hex'), ...extra });
+    const da = await register(a);
+    const db = await register(b, { partyId: p.id, allowedUsers: [a.id], partyAll: false });
+    const dc = await register(c);
+    const jobBody = { target: 'party', partyId: p.id, execution: 'remote', requestDeviceId: da.id, mode: 'fractal', width: 200, height: 200, iterations: 100, minRam: 2, budget: 5 };
+    await assert.rejects(api(c.token, 'jobs', 'POST', { ...jobBody, requestDeviceId: dc.id }), e => e.status === 403);
+    await assert.rejects(api(a.token, 'jobs', 'POST', { ...jobBody, execution: 'local' }), e => e.status === 400);
+    const freeJob = await api(a.token, 'jobs', 'POST', jobBody);
+    assert.equal((await api(da.token, 'agent/task?kind=cpu', 'GET')).task, null, 'remote excludes requester');
+    assert.equal((await api(dc.token, 'agent/task?kind=cpu', 'GET')).task, null, 'untrusted device cannot claim party work');
+    agent = new RemoteAgent({ server: base, token: db.token, config }); agent.start();
+    for (let i = 0; i < 160; i++) { if (app.hub.s.jobs.find(j => j.id === freeJob.id).status === 'done') break; await sleep(150); }
+    assert.equal(app.hub.s.jobs.find(j => j.id === freeJob.id).status, 'done', agent.message);
+    assert.equal(app.hub.user(a.id).balance, 100000); assert.equal(app.hub.user(b.id).balance, 100000);
+    const image = await fetch(base + '/v1/jobs/' + freeJob.id + '/image', { headers: { authorization: 'Bearer ' + a.token } });
+    assert.equal(image.status, 200); const png = Buffer.from(await image.arrayBuffer()); assert.equal(png.readUInt32BE(16), 200);
+    const stolen = await fetch(base + '/v1/jobs/' + freeJob.id + '/image', { headers: { authorization: 'Bearer ' + c.token } }); assert.equal(stolen.status, 404);
+    await agent.stop(); agent = null;
+    console.log('PASS: accounts, invitation acceptance, one-way permissions, remote party render and private result');
+
+    const seller = await register(b, { market: true, commitment: 'reserved', slots: 1 });
+    const paid = await api(a.token, 'jobs', 'POST', { ...jobBody, target: 'market', budget: 2 });
+    assert.equal(app.hub.user(a.id).balance, 98000);
+    const leased = (await api(seller.token, 'agent/task?kind=cpu', 'GET')).task;
+    assert.ok(leased); assert.equal((await api(seller.token, 'agent/task?kind=cpu', 'GET')).task, null, 'cannot overallocate slots');
+    await assert.rejects(api(dc.token, 'agent/result', 'POST', { ...leased, pixels: '' }), e => e.status === 409);
+    await assert.rejects(api(seller.token, 'agent/result', 'POST', { ...leased, pixels: Buffer.alloc(leased.width * leased.rows * 3, 255).toString('base64') }), e => e.status === 400);
+    const body = { ...leased, pixels: fractal.renderTile(leased).toString('base64'), durationMs: 999999999 };
+    await Promise.all([api(seller.token, 'agent/result', 'POST', body), api(seller.token, 'agent/result', 'POST', body)]);
+    const j = app.hub.s.jobs.find(j => j.id === paid.id);
+    const settled = app.hub.s.ledger.filter(l => l.ref === leased.taskId && l.reason === 'Sarcină acceptată'); assert.equal(settled.length, 1);
+    const earned = settled[0].delta; assert.ok(earned > 0 && earned < 1000); assert.equal(app.hub.user(b.id).balance, 100000 + earned);
+    assert.equal(j.tasks.filter(t => t.status === 'done').length, 1);
+    const interrupted = (await api(seller.token, 'agent/task?kind=cpu', 'GET')).task;
+    const bond = j.tasks.find(t => t.id === interrupted.taskId).bond; assert.ok(bond > 0);
+    const oldLease = interrupted.lease; const borrowerBefore = app.hub.user(a.id).balance;
+    now += 61000; app.hub.heartbeat(da.id);
+    assert.equal(app.hub.user(a.id).balance, borrowerBefore + bond);
+    const restored = (await api(seller.token, 'agent/task?kind=cpu', 'GET')).task; assert.notEqual(restored.lease, oldLease);
+    await assert.rejects(api(seller.token, 'agent/result', 'POST', { ...interrupted, pixels: body.pixels }), e => e.status === 409);
+    await api(a.token, 'jobs/cancel', 'POST', { jobId: paid.id });
+    assert.equal(app.hub.user(a.id).balance + app.hub.user(b.id).balance + app.hub.user(c.id).balance, 300000, 'credits conserved');
+    assert.equal(j.escrow, 0);
+    console.log('PASS: budget escrow, no overbooking, forged result rejection, duplicate settlement, grace/penalty, stale leases and cancellation refund');
+
+    const bParty = await register(b, { partyId: p.id, partyAll: true, commitment: 'reserved' });
+    await api(a.token, 'jobs', 'POST', jobBody);
+    const partyLease = (await api(bParty.token, 'agent/task?kind=cpu', 'GET')).task; assert.ok(partyLease);
+    const balanceBefore = app.hub.user(b.id).balance;
+    await api(a.token, 'parties/leave', 'POST', { partyId: p.id, memberId: b.id });
+    await assert.rejects(api(bParty.token, 'agent/result', 'POST', { ...partyLease, pixels: body.pixels }), e => e.status === 409);
+    assert.equal(app.hub.user(b.id).balance, balanceBefore, 'no party penalty');
+    const privateState = JSON.stringify(await api(c.token, 'state', 'GET'));
+    assert.ok(!privateState.includes('tokenHash') && !privateState.includes('passwordHash') && !privateState.includes(p.name));
+    const limited = await api(a.token, 'jobs', 'POST', { ...jobBody, target: 'market', width: 640, height: 360, iterations: 1000, budget: .1 });
+    assert.equal((await api(seller.token, 'agent/task?kind=cpu', 'GET')).task, null, 'insufficient budget cannot assign');
+    assert.match(app.hub.state(a.id).jobs.find(j => j.id === limited.id).waiting, /Bugetul/);
+    await assert.rejects(api(c.token, 'jobs/budget', 'POST', { jobId: limited.id, amount: 5 }), e => e.status === 404);
+    await api(a.token, 'jobs/budget', 'POST', { jobId: limited.id, amount: 5 });
+    const draining = (await api(seller.token, 'agent/task?kind=cpu', 'GET')).task; assert.ok(draining);
+    await api(seller.token, 'agent/stop', 'POST', { force: false });
+    assert.equal((await api(seller.token, 'agent/task?kind=cpu', 'GET')).task, null);
+    await api(seller.token, 'agent/result', 'POST', { ...draining, pixels: fractal.renderTile(draining).toString('base64') });
+    await api(a.token, 'jobs/cancel', 'POST', { jobId: limited.id });
+    console.log('PASS: insufficient budget explained, authorized top-up, drain finishes accepted work');
+    const recoverSeller = await register(b, { market: true, commitment: 'reserved', slots: 1 });
+    const recoverJob = await api(a.token, 'jobs', 'POST', { ...jobBody, target: 'market', budget: 2 });
+    const recoverLease = (await api(recoverSeller.token, 'agent/task?kind=cpu', 'GET')).task; assert.ok(recoverLease);
+    const recoverBond = app.hub.s.jobs.find(j => j.id === recoverJob.id).tasks.find(t => t.id === recoverLease.taskId).bond;
+    assert.ok(recoverBond > 0);
+    const balances = app.hub.s.users.map(u => u.balance);
+    balances[1] += recoverBond;
+    await app.close(); app = null;
+    const restarted = new Hub({ file, clock: () => now });
+    assert.deepEqual(restarted.s.users.map(u => u.balance), balances); assert.ok(restarted.store.get(leased.taskId));
+    assert.equal(restarted.s.jobs.flatMap(j => j.tasks).filter(t => t.status === 'assigned').length, 0); restarted.close();
+    console.log('PASS: revocation, no implicit reciprocal access, persistent balances/results and restart recovery');
+  } finally {
+    await agent?.stop(); if (app) await app.close();
+    if (path.resolve(temp).startsWith(path.resolve(os.tmpdir()) + path.sep)) fs.rmSync(temp, { recursive: true, force: true });
+  }
+}
+main().catch(error => { console.error(error); process.exitCode = 1; });

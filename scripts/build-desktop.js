@@ -20,12 +20,13 @@ if (!safeStage) throw new Error('Folderul temporar nu este în directorul tempor
 
 async function main() {
   try {
-    for (const file of ['app.js', 'server.js', 'provider.js']) {
+    for (const file of ['hub-app.js', 'app.js', 'server.js', 'provider.js']) {
       fs.copyFileSync(path.join(root, file), path.join(stage, file));
     }
     for (const dir of ['lib', 'public', 'desktop']) {
       fs.cpSync(path.join(root, dir), path.join(stage, dir), { recursive: true });
     }
+    if (process.env.CB_HUB_URL) fs.writeFileSync(path.join(stage, 'desktop/config.json'), JSON.stringify({ hubUrl: require('../lib/remote-agent').hubUrl(process.env.CB_HUB_URL) }));
     fs.writeFileSync(path.join(stage, 'package.json'), JSON.stringify({
       name: 'compute-bridge-desktop',
       productName: 'Compute Bridge',
@@ -57,8 +58,9 @@ async function main() {
       'Păstrează toate fișierele lângă executabil, inclusiv resources.\r\n' +
       'Aplicația se deschide în propria fereastră; nu cere Node.js sau browser instalat.\r\n' +
       'Blender și o placă NVIDIA sunt necesare pentru randarea GPU.\r\n' +
-      'Toate PC-urile trebuie să fie în aceeași rețea locală.\r\n' +
-      'La închiderea tuturor ferestrelor se opresc coordonatorul și partajarea.\r\n');
+      'Conectează-te la adresa HTTPS a serviciului echipei și creează un cont.\r\n' +
+      'PC-urile pot fi în rețele diferite. Folosește party-uri sau marketplace.\r\n' +
+      'La închiderea aplicației se oprește agentul acestui PC.\r\n');
     const file = `ComputeBridge-${version}-desktop-windows-x64.zip`;
     const archive = path.join(output, file);
     execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',

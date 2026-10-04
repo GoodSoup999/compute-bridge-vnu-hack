@@ -50,10 +50,10 @@ function openPanel(url) {
 
 function startService() {
   return new Promise((resolve, reject) => {
-    const entry = path.join(__dirname, '..', 'app.js');
+    const entry = path.join(__dirname, '..', 'hub-app.js');
     service = spawn(process.execPath, [entry, '--no-open', '--port', '3210'], {
       cwd: path.dirname(entry), windowsHide: true,
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', CB_DATA_DIR: app.getPath('userData'), CB_HUB_URL: process.env.CB_HUB_URL || require('./config.json').hubUrl || '' },
       stdio: ['ignore', 'pipe', 'pipe']
     });
     let output = '';
