@@ -1,52 +1,49 @@
 # Compute Bridge
 
-Prototip VNU Hack pentru împărțirea lucrului de calcul între PC-uri cu Windows din aceeași rețea locală. Versiunea **0.2.0**.
+Prototip VNU Hack pentru împărțirea lucrului de calcul între PC-uri cu Windows din aceeași rețea locală. Versiunea **0.3.0 — aplicație desktop cu fereastră proprie, fără tab de browser**.
 
 Un PC rulează **coordonatorul**: primește o lucrare, o taie în sarcini și le ține într-o singură coadă. Celelalte PC-uri rulează **conectorul** și oferă procesorul și, dacă au, placa video. Fiecare slot liber cere următoarea sarcină imediat ce o termină pe cea curentă, așa că PC-ul mai rapid preia mai multe. Coordonatorul poate oferi și el putere în același timp.
 
 Fiecare PC calculează separat: procesoarele și VRAM-ul plăcilor video nu se adună. Fiecare GPU randează cadre întregi, iar fiecare slot CPU calculează benzi întregi din imagine.
 
-Site și download: **https://node-compute.vercel.app**
+**[Descarcă aplicația desktop Windows 0.3.0](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.3.0)** din secțiunea *Assets*: `ComputeBridge-0.3.0-desktop-windows-x64.zip`. Repository-ul este privat: trebuie să fii autentificat cu un cont care are acces.
 
-## Aplicație desktop Windows (fereastră proprie)
+Site de prezentare: [node-compute.vercel.app](https://node-compute.vercel.app). **Pagina sa de download încă distribuie versiunea veche 0.2.0, cu interfață în browser. Pentru desktop folosește release-ul GitHub de mai sus.**
 
-Codul existent poate rula într-o fereastră desktop Electron, fără tab de browser. Coordonatorul, conectorul, randarea și interfața sunt aceleași ca în versiunea 0.2.0. Panoul de lucru se deschide într-o a doua fereastră a aplicației.
+## Descarcă și pornește aplicația desktop
 
-Din acest repository, pe Windows x64, cu Node.js și npm instalate:
+1. Descarcă arhiva desktop din release și dezarhivează **întregul folder**.
+2. Dă dublu-clic pe `ComputeBridge.exe` din `Compute Bridge-win32-x64`.
+3. Se deschide fereastra proprie a aplicației, în română. Alege dacă acest PC oferă putere sau coordonează lucrări.
+4. *Deschide panoul de lucru* deschide o a doua fereastră a aplicației.
+5. La închiderea tuturor ferestrelor se opresc coordonatorul și partajarea resurselor.
+
+Păstrează toate fișierele din arhivă lângă executabil, inclusiv folderul `resources`. Nu trebuie instalate Node.js sau un browser pe PC-urile care folosesc pachetul. Pentru GPU trebuie în continuare instalate Blender și driverul NVIDIA. Când Windows Firewall cere acces, permite-l în rețele private: TCP 3000 pentru coordonator și UDP 39871 pentru descoperire. Pachetul pentru Windows 10/11 x64 nu este semnat digital.
+
+Codul existent pentru coordonator, conector și randare este păstrat; Electron găzduiește aceeași interfață în ferestre desktop.
+
+## Pornire și construire din surse
+
+Pentru dezvoltare și build, folosește Windows x64 cu Node.js 24 și npm:
 
 ```powershell
 npm ci
 npm run desktop
 ```
 
-Pentru pachetul portabil:
+Pentru pachetul portabil și manifestul de download:
 
 ```powershell
-npm run desktop:build
+npm run build
 ```
 
-Executabilul rezultat este `dist\desktop\Compute Bridge-win32-x64\ComputeBridge.exe`. Copiază **întregul folder** `Compute Bridge-win32-x64` pe fiecare PC Windows; executabilul are nevoie de subfolderul `resources` și de celelalte fișiere din pachet. Pe PC-urile țintă nu trebuie instalate Node.js sau un browser. Pentru randare GPU trebuie în continuare instalat Blender și trebuie permis accesul în rețeaua privată când întreabă Windows Firewall. Pachetul nu este semnat digital.
+În `dist/desktop/` se generează folderul aplicației, `ComputeBridge-0.3.0-desktop-windows-x64.zip`, `manifest.json` și `SHA256SUMS.txt`. `npm run desktop:build` este o comandă echivalentă.
 
-Comanda `npm run desktop:smoke` verifică pornirea interfeței desktop fără a lăsa o fereastră deschisă. Pachetele de pe pagina de download descrise mai jos sunt versiunea anterioară, care se deschide în browser; acest pachet desktop se construiește din repository.
+`npm run desktop:smoke` verifică pornirea interfeței desktop fără a lăsa o fereastră deschisă.
 
-## Descarcă și pornește
+## Versiunea veche cu interfață în browser
 
-Pe [pagina de download](https://node-compute.vercel.app/download) sunt două pachete, ambele pentru **Windows 10 și 11, x64**:
-
-| Pachet | Ce conține |
-| --- | --- |
-| `ComputeBridge-0.2.0-windows-x64.zip` | `ComputeBridge.exe`, cu Node.js inclus. Nu trebuie instalat nimic. |
-| `compute-bridge-0.2.0-source.zip` | Codul sursă și lansatorul `Compute Bridge.cmd`, pentru PC-uri cu Node.js 20+. E aceeași aplicație, utilă dacă antivirusul blochează `.exe`-ul. |
-
-**Prima pornire:**
-
-1. Dezarhivează și dă dublu-clic pe `ComputeBridge.exe`.
-2. Dacă Windows afișează „Windows protected your PC”, apasă *More info*, apoi *Run anyway*. Aplicația nu e semnată digital.
-3. Când firewall-ul cere acces, permite-l în **rețelele private**. Fără asta, celelalte PC-uri nu ajung la coordonator (TCP 3000) și nu îl găsesc în rețea (UDP 39871).
-4. Se deschide o fereastră de consolă. Las-o deschisă: dacă o închizi, aplicația se oprește.
-5. Aplicația se deschide în browser, la `http://127.0.0.1:3210` sau la următorul port liber. Dacă nu se deschide singură, copiază adresa afișată în consolă.
-
-Interfața aplicației e în română și folosește designul NODE.
+Pachetele `ComputeBridge-0.2.0-windows-x64.zip` și `compute-bridge-0.2.0-source.zip` deschid un browser și o consolă. Pentru noua aplicație descarcă arhiva care conține **`0.3.0-desktop`** în nume. Modul vechi rămâne disponibil din surse prin `npm run app`; `npm run build:browser` construiește explicit pachetele vechi. Build-ul implicit produce aplicația desktop.
 
 ## Coordonatorul: PC-ul care trimite lucrări
 
@@ -196,7 +193,8 @@ node provider.js --server http://192.168.1.10:3000 --token COD --name PC-5060 --
 
 | Fișier | Rol |
 | --- | --- |
-| `app.js` | Aplicația desktop: server local pe 127.0.0.1, care răspunde doar cu o cheie generată la fiecare pornire. Pornește coordonatorul și conectorul și deschide fereastra în browser. |
+| `desktop/main.js` | Ferestrele Electron și pornirea/oprirea motorului local. |
+| `app.js` | Motorul aplicației: server local pe 127.0.0.1, cu o cheie generată la fiecare pornire. Pornește coordonatorul și conectorul. Cu `--no-open` este folosit de aplicația desktop; rulat separat, deschide browserul. |
 | `public/app.html` | Interfața aplicației: start, coordonator, conector. |
 | `server.js` | Coordonatorul. Exportă `startServer()`; rulat direct, se comportă ca înainte. Trimite semnalul de descoperire. |
 | `public/node.html` | Panoul live al coordonatorului (`/node`). |
@@ -235,9 +233,9 @@ node provider.js --server http://192.168.1.10:3000 --token COD --name PC-5060 --
 
 Pe un PC cu Blender și NVIDIA există și `node test/gpu-smoke.js`, care verifică două cadre GPU pe doi furnizori și apoi modul CPU.
 
-**Build:** `node scripts/build.js` creează cele două pachete și `manifest.json` (mărimi și SHA-256) în `dist/`; se rulează pe Windows x64.
-- Aplicația e strânsă într-un singur script, transformată în blob [Node SEA](https://nodejs.org/api/single-executable-applications.html) și injectată cu `postject` în binarul Node.js al PC-ului care face build-ul.
-- Cu `--publish <folder>`, pachetele se copiază acolo. Pentru site: `node scripts/build.js --publish ../apps/web/public/downloads`, apoi, din repo-ul site-ului, `npm run deploy -w apps/web`.
+**Build desktop:** `node scripts/build.js` creează pachetul Electron, arhiva ZIP și manifestul cu mărime și SHA-256 în `dist/desktop/`; se rulează pe Windows x64 după `npm ci`.
+- Cu `--publish <folder>`, arhiva, manifestul și checksum-ul se copiază acolo. Pentru site: `node scripts/build.js --publish ../apps/web/public/downloads`, apoi publică proiectul site-ului în Vercel. Copierea fișierelor local sau un push în acest repository nu actualizează automat site-ul separat.
+- Pagina de download și documentația site-ului trebuie să descrie fereastra desktop și să nu mai ceară păstrarea consolei deschise. Manifestul nou indică `ui: "desktop"`.
 
 **După o actualizare,** pune aceeași versiune pe toate PC-urile: aplicația nouă, sau `git pull` pentru linia de comandă. Un furnizor cu protocol vechi primește mesajul să se actualizeze.
 

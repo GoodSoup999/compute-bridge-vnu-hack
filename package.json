@@ -1,6 +1,6 @@
 {
   "name": "hackerville-compute-bridge",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "main": "desktop/main.js",
   "scripts": {
@@ -10,6 +10,7 @@
     "desktop:smoke": "electron . --smoke",
     "desktop:build": "node scripts/build-desktop.js",
     "build": "node scripts/build.js",
+    "build:browser": "node scripts/build-browser.js",
     "test": "node test/scheduling.js && node test/error-report.js && node test/connector.js",
     "provider": "node provider.js",
     "local": "node scripts/local.js"

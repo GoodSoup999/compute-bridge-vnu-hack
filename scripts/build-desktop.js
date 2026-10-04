@@ -2,10 +2,18 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const { packager } = require('@electron/packager');
 
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'dist', 'desktop');
+const version = require('../lib/version');
+const publishIndex = process.argv.indexOf('--publish');
+const publish = publishIndex < 0 ? null : process.argv[publishIndex + 1];
+if (publishIndex >= 0 && (!publish || publish.startsWith('--'))) throw new Error('--publish cere un folder destinație.');
+if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('Pachetul desktop se construiește pe Windows x64.');
+if (require('../package.json').version !== version) throw new Error('Versiunile din package.json și lib/version.js diferă.');
 const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'compute-bridge-desktop-stage-'));
 const safeStage = path.resolve(stage).startsWith(path.resolve(os.tmpdir()) + path.sep);
 if (!safeStage) throw new Error('Folderul temporar nu este în directorul temporar al sistemului.');
@@ -21,7 +29,7 @@ async function main() {
     fs.writeFileSync(path.join(stage, 'package.json'), JSON.stringify({
       name: 'compute-bridge-desktop',
       productName: 'Compute Bridge',
-      version: require('../package.json').version,
+      version,
       main: 'desktop/main.js'
     }, null, 2));
 
@@ -43,7 +51,45 @@ async function main() {
       require('electron'),
       path.join(folders[0], 'ComputeBridge.exe')
     );
+    fs.writeFileSync(path.join(folders[0], 'Citeste-ma.txt'),
+      `Compute Bridge ${version} - aplicație desktop Windows\r\n\r\n` +
+      'Dezarhivează întregul folder și pornește ComputeBridge.exe.\r\n' +
+      'Păstrează toate fișierele lângă executabil, inclusiv resources.\r\n' +
+      'Aplicația se deschide în propria fereastră; nu cere Node.js sau browser instalat.\r\n' +
+      'Blender și o placă NVIDIA sunt necesare pentru randarea GPU.\r\n' +
+      'Toate PC-urile trebuie să fie în aceeași rețea locală.\r\n' +
+      'La închiderea tuturor ferestrelor se opresc coordonatorul și partajarea.\r\n');
+    const file = `ComputeBridge-${version}-desktop-windows-x64.zip`;
+    const archive = path.join(output, file);
+    execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+      '$ErrorActionPreference = "Stop"; Add-Type -AssemblyName System.IO.Compression.FileSystem; ' +
+      'if ([System.IO.File]::Exists($env:CB_ARCHIVE_PATH)) { [System.IO.File]::Delete($env:CB_ARCHIVE_PATH) }; ' +
+      '[System.IO.Compression.ZipFile]::CreateFromDirectory($env:CB_PACKAGE_DIR, $env:CB_ARCHIVE_PATH, [System.IO.Compression.CompressionLevel]::Optimal, $true)'], {
+      env: { ...process.env, CB_PACKAGE_DIR: folders[0], CB_ARCHIVE_PATH: archive },
+      windowsHide: true, stdio: 'inherit'
+    });
+    const bytes = fs.readFileSync(archive);
+    const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+    const manifest = {
+      app: 'Compute Bridge', version, builtAt: new Date().toISOString(),
+      files: [{ id: 'windows-x64', os: 'windows',
+        label: 'Windows 10 and 11, x64 — desktop window',
+        file, needsNode: false, ui: 'desktop', bytes: bytes.length, sha256 }]
+    };
+    fs.writeFileSync(path.join(output, 'manifest.json'), JSON.stringify(manifest, null, 2));
+    fs.writeFileSync(path.join(output, 'SHA256SUMS.txt'), `${sha256}  ${file}\n`);
+    if (publish) {
+      const destination = path.resolve(publish);
+      if (destination !== output) {
+        fs.mkdirSync(destination, { recursive: true });
+        for (const item of [file, 'manifest.json', 'SHA256SUMS.txt']) {
+          fs.copyFileSync(path.join(output, item), path.join(destination, item));
+        }
+      }
+      console.log(`Pachet și manifest publicate în: ${destination}`);
+    }
     console.log(`Aplicația desktop Windows: ${path.join(folders[0], 'ComputeBridge.exe')}`);
+    console.log(`Arhivă: ${archive}`);
     console.log('Distribuie întregul folder; executabilul folosește fișierele de lângă el.');
   } finally {
     fs.rmSync(stage, { recursive: true, force: true });
