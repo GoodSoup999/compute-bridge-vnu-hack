@@ -1,10 +1,12 @@
-# Compute Bridge 0.5 — marketplace simplu
+# Compute Bridge 0.6 — proiecte proprii și marketplace
 
 Aplicație Windows pentru a oferi puterea PC-ului și a folosi PC-uri disponibile prin internet. Serverul echipei este inclus în configurația aplicației: utilizatorii nu introduc linkuri sau coduri.
 
 [Descarcă aplicația Windows 0.5](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.5.3-beta.1). Dezarhivează întregul folder și pornește **ComputeBridge.exe**. Clientul nu cere Node.js. Pentru GPU sunt necesare Blender și o placă NVIDIA.
 
 ## Fluxul principal
+
+**Nou în sursele 0.6:** încărcare de proiecte Blender proprii, cadre din animația utilizatorului, transfer verificat către furnizori care acceptă proiecte și rezultate PNG. [Ghidul proiectelor](docs/PROJECTS.md). Gazda și furnizorii trebuie actualizați pentru această funcție. Programele arbitrare și izolarea completă nu sunt încă implementate.
 
 1. Deschizi aplicația și creezi un cont. Primești **100 de credite de test**, o singură dată.
 2. În **Oferă PC-ul meu**, alegi intervalul în ore, resursele și pornești oferta. PC-ul apare în marketplace după confirmarea conexiunii agentului. Nu cere aprobare manuală.

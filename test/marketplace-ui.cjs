@@ -33,6 +33,12 @@ async function main() {
   assert.match(await run("document.getElementById('requirements').textContent"), /4 GB RAM · 4 GB VRAM/);
   await run("document.querySelector('[name=width]').value=1600; document.querySelector('[name=height]').value=1000; conditional();");
   assert.match(await run("document.getElementById('requirements').textContent"), /6 GB RAM/);
+  state.state.projects = [{ id: 'own-project', name: 'My animation.blend', bytes: 1000 }];
+  await run('refresh(true)');
+  await run("document.getElementById('project').value='own-project'; conditional();");
+  assert.equal(await run("document.getElementById('startFrameLabel').hidden"), false);
+  assert.equal(await run("document.querySelector('[name=frames]').min"), '1');
+  assert.match(await run("document.getElementById('projectList').textContent"), /My animation.blend/);
   await run("tab('jobs'); const input=document.querySelector('.budgetForm input'); input.value='27'; input.focus();");
   job.done = 5;
   await run('refresh(true)');

@@ -23,7 +23,7 @@ async function checkHub() {
     const res = await fetch(server + '/health', { signal: AbortSignal.timeout(8000) });
     const info = await res.json();
     if (!res.ok || info.protocol !== 5) throw new Error(info.protocol === 4 ? 'Serverul gazdă trebuie actualizat la 0.5.' : 'Server indisponibil');
-    hubStatus = { connected: true, message: 'Conectat la server' };
+    hubStatus = { connected: true, message: 'Conectat la server', features: info.features || [] };
   } catch (error) { hubStatus = { connected: false, message: error.message.includes('0.5') ? error.message : 'Serverul nu răspunde. Aplicația reîncearcă automat.' }; }
 }
 let account = null; let device = null; let config = null; let agent = null; let busy = false; let availabilityDeadline = 0;
@@ -66,6 +66,19 @@ const ui = http.createServer(async (req, res) => {
     if (req.method === 'GET' && ['/hub.js', '/workload.js', '/hub.css'].includes(req.url)) { res.writeHead(200, { 'content-type': req.url.endsWith('.js') ? 'text/javascript' : 'text/css' }); return res.end(readAsset('public' + req.url)); }
     if (serveShared(req, res)) return;
     if (req.headers['x-app-key'] !== key) return json(res, 403, { error: 'Acces local neautorizat' });
+    if (req.url.startsWith('/local/project?') && req.method === 'PUT') {
+      if (!account) throw new Error('Autentifică-te');
+      if (busy) throw new Error('O operație este deja în curs'); busy = true;
+      try {
+        checkedAt = 0; await checkHub();
+        if (!hubStatus.features?.includes('blender-projects-v1')) throw new Error('Gazda trebuie actualizată la 0.6 pentru încărcarea proiectelor.');
+        const name = new URL(req.url, 'http://local').searchParams.get('name');
+        const bytes = await require('./lib/project-file').readProject(req);
+        const response = await fetch(server + '/v1/projects?name=' + encodeURIComponent(name || 'proiect.blend'), { method: 'PUT', headers: { authorization: 'Bearer ' + account.token, 'content-type': 'application/octet-stream' }, body: bytes, signal: AbortSignal.timeout(120000) });
+        const value = await response.json(); if (!response.ok) throw Object.assign(new Error(value.error), { status: response.status });
+        return json(res, 201, value);
+      } finally { busy = false; }
+    }
     if (req.url === '/local/state' && req.method === 'GET') {
       await checkHub();
       let state = null;
@@ -106,6 +119,7 @@ const ui = http.createServer(async (req, res) => {
       else if (req.url === '/local/stop') { if (b.force) await agent?.stop(true); else await agent?.drain(); }
       else if (req.url === '/local/job') {
         if (!account) throw new Error('Autentifică-te');
+        if (b.projectId && !hubStatus.features?.includes('blender-projects-v1')) throw new Error('Gazda trebuie actualizată la 0.6 pentru proiecte proprii');
         if (b.execution === 'hybrid') {
           if (!agent?.running) await configure({ ...config, market: false, hours: 1 });
           await startAgent();
@@ -113,7 +127,7 @@ const ui = http.createServer(async (req, res) => {
         await call('jobs', 'POST', { ...b, ...requirements(b), requestDeviceId: device.id });
       }
       else if (req.url === '/local/action') {
-        const allowed = ['devices/stop', 'jobs/cancel', 'jobs/budget'];
+        const allowed = ['devices/stop', 'jobs/cancel', 'jobs/budget', 'projects/delete'];
         if (!allowed.includes(b.endpoint)) throw new Error('Operație nepermisă'); await call(b.endpoint, 'POST', b.data);
       } else return json(res, 404, { error: 'Negăsit' });
       return json(res, 200, { ok: true });

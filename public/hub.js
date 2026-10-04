@@ -18,6 +18,9 @@ const empty = text => `<div class="empty">${esc(text)}</div>`;
 function conditional() {
   const mode = $('jobMode').value;
   $('fractalSettings').hidden = mode !== 'fractal'; $('renderSettings').hidden = mode === 'fractal'; $('gpuSettings').hidden = mode !== 'blender';
+  const project = mode === 'blender' && !!$('project').value && $('project').value !== 'demo';
+  $('startFrameLabel').hidden = !project;
+  $('jobForm').elements.frames.min = project ? 1 : 2;
   const memory = ComputeWorkload.requirements(formData($('jobForm')));
   $('requirements').textContent = `Memorie estimată automat: ${memory.minRam} GB RAM${memory.minVram ? ' · '+memory.minVram+' GB VRAM' : ''}. Alegem PC-uri compatibile. Estimarea include o marjă de siguranță.`;
 }
@@ -40,7 +43,7 @@ function renderJobs(jobs) {
   const focused = document.activeElement;
   const focusedJob = focused?.closest?.('.budgetForm')?.dataset.job;
   const drafts = new Map([...list.querySelectorAll('.budgetForm')].map(f => [f.dataset.job, f.elements.amount.value]));
-  const html = jobs.map(j=>`<article class="card"><div class="jobhead"><strong>${esc(j.mode)}</strong><span class="badge">${esc(({running:'În lucru',done:'Terminat',cancelled:'Anulat',error:'Eroare',expired:'Expirat'})[j.status] || j.status)}</span></div><p class="sub">${esc(j.provider)} · ${j.execution==='hybrid' ? 'cu acest laptop':'remote'} · ${j.done}/${j.total} sarcini</p><div class="meter"><span style="width:${Math.round(j.done/j.total*100)}%"></span></div><p class="sub">${money(j.spent)} credite consumate · ${money(j.reserved)} rezervate<br>${esc(Object.entries(j.contributions).map(([n,v])=>n+': '+v).join(' · '))}</p>${j.waiting ? `<p class="hint">${esc(j.waiting)}</p>`:''}${j.error ? `<p class="hint">${esc(j.error)}</p>`:''}<div class="actions">${j.status==='running' ? `<button data-cancel="${j.id}">Anulează și restituie restul</button><form class="budgetForm" data-job="${j.id}"><div class="row"><label>Credite suplimentare<input name="amount" type="number" min="0.1" max="1000" step="0.1" value="10" required></label><button>Adaugă la buget</button></div></form>`:''}${j.status==='done' ? `<button class="primary" data-result="${j.id}" data-frames="${j.frames || 1}">Vezi rezultatul</button>`:''}</div></article>`).join('') || empty('Alege un PC disponibil și pornește prima lucrare.');
+  const html = jobs.map(j=>`<article class="card"><div class="jobhead"><strong>${esc(j.projectName || j.mode)}</strong><span class="badge">${esc(({running:'În lucru',done:'Terminat',cancelled:'Anulat',error:'Eroare',expired:'Expirat'})[j.status] || j.status)}</span></div><p class="sub">${esc(j.provider)} · ${j.execution==='hybrid' ? 'cu acest laptop':'remote'} · ${j.done}/${j.total} sarcini</p><div class="meter"><span style="width:${Math.round(j.done/j.total*100)}%"></span></div><p class="sub">${money(j.spent)} credite consumate · ${money(j.reserved)} rezervate<br>${esc(Object.entries(j.contributions).map(([n,v])=>n+': '+v).join(' · '))}</p>${j.waiting ? `<p class="hint">${esc(j.waiting)}</p>`:''}${j.error ? `<p class="hint">${esc(j.error)}</p>`:''}<div class="actions">${j.status==='running' ? `<button data-cancel="${j.id}">Anulează și restituie restul</button><form class="budgetForm" data-job="${j.id}"><div class="row"><label>Credite suplimentare<input name="amount" type="number" min="0.1" max="1000" step="0.1" value="10" required></label><button>Adaugă la buget</button></div></form>`:''}${j.status==='done' ? `<button class="primary" data-result="${j.id}" data-frames="${j.frames || 1}">Vezi rezultatul</button>`:''}</div></article>`).join('') || empty('Alege un PC disponibil și pornește prima lucrare.');
   if (list.innerHTML === html) return;
   list.innerHTML = html;
   for (const form of list.querySelectorAll('.budgetForm')) {
@@ -74,6 +77,11 @@ function render(data) {
   $('drain').disabled = !active; $('force').disabled = !active;
   const available = s.devices.filter(d=>d.ownerId!==s.user.id && d.market && d.online);
   providers(available);
+  const selectedProject = $('project').value;
+  const projects = s.projects || [];
+  const projectOptions = '<option value="">Alege proiectul tău</option><option value="demo">Scena demo inclusă</option>' + projects.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+  if ($('project').innerHTML !== projectOptions) { $('project').innerHTML = projectOptions; $('project').value = selectedProject; conditional(); }
+  $('projectList').innerHTML = projects.map(p=>`<div class="ledgerrow"><span>${esc(p.name)} · ${(p.bytes/1048576).toFixed(1)} MB</span><button type="button" data-delete-project="${esc(p.id)}">Șterge</button></div>`).join('');
   $('market').innerHTML = available.map(d=>deviceCard(d)).join('') || empty('Niciun PC oferit acum. Pe laptopul furnizor, deschide „Oferă PC-ul meu” și pornește oferta.');
   $('myDevices').innerHTML = s.devices.filter(d=>d.id===data.deviceId && d.market).map(d=>deviceCard(d,true)).join('') || empty('Acest PC nu este oferit pentru lucru.');
   renderJobs(s.jobs);
@@ -90,17 +98,34 @@ async function perform(fn, message) { try { await fn(); if (message) notice(mess
 $('authForm').addEventListener('submit',e=>{e.preventDefault();const intent=e.submitter.value;const b=formData(e.currentTarget);perform(async()=>{await api(intent,b);e.target.elements.password.value='';initialized=false;},'Conectat.');});
 $('logout').onclick=()=>perform(async()=>{await api('logout',{});initialized=false;tab('market');closeViewer();},'Ai ieșit din cont.');
 $('offerForm').onsubmit=e=>{e.preventDefault();perform(()=>api('device',formData(e.target)),'PC-ul tău este conectat și oferit în marketplace.');};
-$('jobForm').onsubmit=e=>{e.preventDefault();perform(()=>api('job',formData(e.target)),'Lucrarea a pornit.');};
+$('jobForm').onsubmit=e=>{e.preventDefault();const data=formData(e.target);perform(()=>{if(data.mode==='blender'&&!data.projectId)throw new Error('Încarcă și selectează proiectul tău Blender.');if(data.mode!=='blender'||data.projectId==='demo')delete data.projectId;return api('job',data);},'Lucrarea a pornit.');};
 $('drain').onclick=()=>perform(()=>api('stop',{force:false}),'Oferta nu mai primește sarcini. Finalizăm lucrul curent.');
 $('force').onclick=()=>perform(()=>api('stop',{force:true}),'Oferta a fost oprită.');
 $('jobMode').onchange=conditional;
 $('jobForm').addEventListener('input', conditional);
+$('project').onchange=conditional;
+$('uploadProject').onclick=()=>perform(async()=>{
+  const file=$('projectFile').files[0];
+  if(!file || !/\.blend$/i.test(file.name)) throw new Error('Alege fișierul .blend');
+  if(file.size>32*1048576) throw new Error('Maximum 32 MB per proiect');
+  $('uploadProject').disabled=true;
+  try {
+    const project=await new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest(); xhr.open('PUT','/local/project?name='+encodeURIComponent(file.name)); xhr.setRequestHeader('x-app-key',key); xhr.setRequestHeader('content-type','application/octet-stream'); xhr.timeout=150000;
+      xhr.upload.onprogress=e=>{$('uploadStatus').textContent=e.lengthComputable ? `Transfer către aplicație: ${Math.round(e.loaded/e.total*100)}%. Așteaptă confirmarea serverului…`:'Transfer în curs…';};
+      xhr.onerror=()=>reject(new Error('Transferul proiectului a eșuat')); xhr.ontimeout=()=>reject(new Error('Transferul a depășit timpul disponibil'));
+      xhr.onload=()=>{let value;try{value=JSON.parse(xhr.responseText);}catch{return reject(new Error('Răspuns de transfer invalid'));}if(xhr.status>=400)reject(new Error(value.error));else resolve(value);}; xhr.send(file);
+    });
+    await refresh(true); $('project').value=project.id; conditional(); $('uploadStatus').textContent='Proiect încărcat pe server. Alege cadrele și pornește lucrarea.';
+  } finally { $('uploadProject').disabled=false; }
+},'Proiect încărcat.');
 document.addEventListener('submit',e=>{if(e.target.matches('.budgetForm')){e.preventDefault();perform(()=>action('jobs/budget',{jobId:e.target.dataset.job,amount:Number(formData(e.target).amount)}),'Buget suplimentat.');}});
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.tab)tab(b.dataset.tab);
   if(b.dataset.use){$('provider').value=b.dataset.use;tab('jobs');notice('PC selectat. Alege lucrarea și apasă „Pornește lucrarea”.');}
   if(b.dataset.cancel)perform(()=>action('jobs/cancel',{jobId:b.dataset.cancel}));
+  if(b.dataset.deleteProject)perform(()=>action('projects/delete',{projectId:b.dataset.deleteProject}),'Proiect șters.');
   if(b.dataset.result)perform(()=>view(b.dataset.result,Number(b.dataset.frames)));
 });
 function closeViewer(){playing=false;clearInterval(playerTimer);for(const image of images)URL.revokeObjectURL(image);images=[];$('viewer').hidden=true;}

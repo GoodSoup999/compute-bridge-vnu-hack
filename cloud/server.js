@@ -41,8 +41,14 @@ function createHubServer(options = {}) {
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://hub'); const route = url.pathname;
-      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 5 });
+      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 5, features: ['blender-projects-v1'] });
       if (!route.startsWith('/v1/')) return json(res, 404, { error: 'Negăsit' });
+      if (route === '/v1/projects' && req.method === 'PUT') {
+        const user = hub.authenticate(String(req.headers.authorization || '').replace(/^Bearer /, ''));
+        const projects = require('./projects');
+        const bytes = await projects.readProject(req);
+        return json(res, 201, projects.upload(hub, user.id, url.searchParams.get('name'), bytes));
+      }
       const body = req.method === 'POST' ? await readJson(req) : {};
       if (req.method === 'POST' && ['/v1/auth/register', '/v1/auth/login'].includes(route)) {
         const key = req.socket.remoteAddress;
@@ -67,6 +73,11 @@ function createHubServer(options = {}) {
         const d = hub.authenticate(token, true);
         if (route === '/v1/agent/heartbeat' && req.method === 'POST') return json(res, 200, hub.heartbeat(d.id));
         if (route === '/v1/agent/task' && req.method === 'GET') return json(res, 200, hub.take(d.id, url.searchParams.get('kind') === 'gpu' ? 'gpu' : 'cpu'));
+        const projectRoute = /^\/v1\/agent\/projects\/([a-f0-9-]+)$/.exec(route);
+        if (projectRoute && req.method === 'GET') {
+          const project = hub.agentProject(d.id, projectRoute[1]);
+          res.writeHead(200, { 'content-type': 'application/octet-stream', 'cache-control': 'no-store' }); return res.end(project);
+        }
         if (route === '/v1/agent/stop' && req.method === 'POST') return json(res, 200, hub.stopDevice(d.id, body.force === true));
         if (route === '/v1/agent/failure' && req.method === 'POST') return json(res, 200, hub.failure(d.id, body));
         if (route === '/v1/agent/result' && req.method === 'POST') {
@@ -82,6 +93,7 @@ function createHubServer(options = {}) {
       if (route === '/v1/jobs' && req.method === 'POST') return json(res, 201, hub.createJob(user.id, body));
       if (route === '/v1/jobs/cancel' && req.method === 'POST') return json(res, 200, hub.cancel(user.id, body.jobId));
       if (route === '/v1/jobs/budget' && req.method === 'POST') return json(res, 200, hub.addBudget(user.id, body.jobId, body.amount));
+      if (route === '/v1/projects/delete' && req.method === 'POST') return json(res, 200, require('./projects').remove(hub, user.id, body.projectId));
       const image = /^\/v1\/jobs\/([a-f0-9-]+)\/image$/.exec(route);
       if (image && req.method === 'GET') { const bytes = hub.result(user.id, image[1], Number(url.searchParams.get('frame') || 0)); res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }); return res.end(bytes); }
       return json(res, 404, { error: 'Negăsit' });

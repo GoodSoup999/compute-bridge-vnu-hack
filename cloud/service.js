@@ -58,7 +58,7 @@ class Hub {
   deviceConfig(uid, b) {
     if (b.market && Number(b.slots) === 0 && b.gpuRender !== true) fail('Oferă cel puțin un fir CPU sau GPU-ul');
     return { name: label(b.name) || 'PC', cpu: label(b.cpu), gpu: label(b.gpu),
-      slots: integer(b.slots ?? 2, 0, 12, 'Fire CPU'), gpuRender: b.gpuRender === true,
+      slots: integer(b.slots ?? 2, 0, 12, 'Fire CPU'), gpuRender: b.gpuRender === true, customProjects: b.customProjects === true,
       ramGb: integer(b.ramGb ?? 4, 1, 512, 'RAM'), vramGb: integer(b.vramGb ?? 0, 0, 128, 'VRAM'),
       cpuPercent: integer(b.cpuPercent ?? 50, 10, 80, 'Buget CPU'),
       until: integer(b.until, this.clock() + 1000, this.clock() + 86400000, 'Sfârșit disponibilitate'),
@@ -79,6 +79,7 @@ class Hub {
   eligible(d, j, kind) {
     if (!this.online(d) || j.status !== 'running') return false;
     if ((j.mode === 'blender') !== (kind === 'gpu') || (kind === 'gpu' ? !d.gpuRender || d.vramGb < j.minVram : d.slots < 1) || d.ramGb < j.minRam) return false;
+    if (j.projectId && !d.customProjects) return false;
     // Start with a remote provider before adding local contribution in hybrid mode.
     if (d.id === j.requestDeviceId) return j.execution === 'hybrid' && j.tasks.some(t => t.deviceId && t.deviceId !== d.id && ['assigned', 'done'].includes(t.status));
     return d.market && d.ownerId !== j.ownerId && (!j.providerId || d.id === j.providerId);
@@ -99,15 +100,19 @@ class Hub {
       if (!current) fail('Înregistrează acest dispozitiv înainte de pornire');
       if (b.execution === 'hybrid' && (current.paused || this.clock() - current.lastSeen > 20000)) fail('Pornește agentul local pentru modul mixt');
       const mode = b.mode; if (!['fractal', 'raytrace', 'blender'].includes(mode)) fail('Lucrare nesuportată');
+      const project = b.projectId && (s.projects || []).find(p => p.id === b.projectId && p.ownerId === uid);
+      if (b.projectId && (!project || mode !== 'blender')) fail('Proiect Blender inaccesibil');
+      const startFrame = project ? integer(b.startFrame ?? 1, 1, 100000, 'Primul cadru') : 0;
       const j = { id: id(), ownerId: uid, requestDeviceId: current.id, target: 'market', providerId: b.providerId || null,
-        execution: b.execution, mode, status: 'running',
+        execution: b.execution, mode, status: 'running', projectId: project?.id || null, projectName: project?.name || null, startFrame,
         width: integer(b.width, 200, 1600, 'Lățime'), height: integer(b.height, 200, 1000, 'Înălțime'),
         iterations: mode === 'fractal' ? integer(b.iterations, 100, 10000, 'Iterații') : null,
         samples: mode !== 'fractal' ? integer(b.samples, 8, 256, 'Mostre') : null,
-        frames: mode === 'blender' ? integer(b.frames, 2, 48, 'Cadre') : null,
+        frames: mode === 'blender' ? integer(b.frames, project ? 1 : 2, 48, 'Cadre') : null,
         ...requirements(b),
         createdAt: this.clock(), deadline: this.clock() + 86400000, tasks: [], spent: 0, escrow: 0, error: null };
       if (mode === 'blender' && j.width * j.height * j.frames > 30000000) fail('Maximum 30 milioane pixeli per animație');
+      if (project) j.minRam = Math.max(j.minRam, Math.ceil(3 + project.bytes * 8 / 1073741824));
       if (s.jobs.reduce((n, x) => n + x.width * x.height * (x.frames || 1), 0) + j.width * j.height * (j.frames || 1) > 250000000) fail('Stocarea hub-ului este ocupată; contactează administratorul', 503);
       if (mode === 'blender') for (let frame = 0; frame < j.frames; frame++) j.tasks.push({ id: id(), frame, status: 'pending', attempts: 0 });
       else for (let y = 0; y < j.height; y += 16) j.tasks.push({ id: id(), y, rows: Math.min(16, j.height - y), status: 'pending', attempts: 0 });
@@ -166,7 +171,8 @@ class Hub {
         if (bond > this.user(d.ownerId).balance) continue;
         if (bond) this.money(d.ownerId, -bond, 'Garanție rezervare', t.id);
         Object.assign(t, { status: 'assigned', deviceId: did, lease: secret(), charge, bond, assignedAt: this.clock(), expires: this.clock() + (kind === 'gpu' ? 300000 : 120000), attempts: t.attempts + 1 });
-        return { task: { jobId: j.id, taskId: t.id, lease: t.lease, mode: j.mode, width: j.width, height: j.height, iterations: j.iterations, samples: j.samples, frames: j.frames, frame: t.frame, y: t.y, rows: t.rows } };
+        const project = (s.projects || []).find(p => p.id === j.projectId);
+        return { task: { jobId: j.id, taskId: t.id, lease: t.lease, mode: j.mode, adapter: j.projectId ? 'blender-project' : j.mode, project: project && { id: project.id, bytes: project.bytes, sha256: project.sha256 }, sourceFrame: j.startFrame + (t.frame || 0), width: j.width, height: j.height, iterations: j.iterations, samples: j.samples, frames: j.frames, frame: t.frame, y: t.y, rows: t.rows } };
       }
       return { task: null };
     });
@@ -209,14 +215,19 @@ class Hub {
     const pixels = Buffer.alloc(j.width * j.height * 3); for (const t of j.tasks) this.store.get(t.id).copy(pixels, t.y * j.width * 3);
     return encodeRgbPng(j.width, j.height, pixels);
   }
+  agentProject(did, pid) {
+    if (!this.s.jobs.some(j => j.projectId === pid && j.status === 'running' && j.tasks.some(t => t.deviceId === did && t.status === 'assigned' && t.expires > this.clock()))) fail('Proiect neatribuit acestui PC', 403);
+    return this.store.get('project:' + pid) || fail('Proiect indisponibil', 404);
+  }
   state(uid) {
     const s = this.s; const u = this.user(uid);
     const deviceView = d => ({ id: d.id, ownerId: d.ownerId, owner: this.user(d.ownerId).name, name: d.name, cpu: d.cpu, gpu: d.gpu, slots: d.slots, gpuRender: d.gpuRender, ramGb: d.ramGb, vramGb: d.vramGb, until: d.until, market: d.market, commitment: d.commitment, price: d.price / 1000, online: this.online(d), completed: d.completed, failed: d.failed,
       busy: s.jobs.flatMap(j => j.tasks).filter(t => t.status === 'assigned' && t.deviceId === d.id).length,
       earned: s.ledger.filter(l => l.userId === d.ownerId && l.reason === 'Sarcină acceptată').reduce((n,l) => n + l.delta, 0) / 1000 });
     return { user: { id: u.id, name: u.name, email: u.email, credits: u.balance / 1000 },
-      devices: s.devices.filter(d => d.ownerId === uid || d.market && this.online(d)).map(deviceView),
-      jobs: s.jobs.filter(j => j.ownerId === uid).slice(-30).reverse().map(j => ({ id: j.id, mode: j.mode, providerId: j.providerId, provider: s.devices.find(d => d.id === j.providerId)?.name || 'Automat', status: j.status, execution: j.execution, total: j.tasks.length, done: j.tasks.filter(t => t.status === 'done').length, spent: j.spent / 1000, reserved: j.escrow / 1000, error: j.error, waiting: this.waitingReason(j), frames: j.frames, contributions: j.tasks.filter(t => t.status === 'done').reduce((a, t) => { const name = s.devices.find(d => d.id === t.deviceId)?.name || 'PC'; a[name] = (a[name] || 0) + 1; return a; }, {}) })),
+      projects: (s.projects || []).filter(p => p.ownerId === uid).map(p => ({ id: p.id, name: p.name, bytes: p.bytes })),
+      devices: s.devices.filter(d => d.ownerId === uid || d.market && this.online(d)).map(d => ({ ...deviceView(d), customProjects: !!d.customProjects })),
+      jobs: s.jobs.filter(j => j.ownerId === uid).slice(-30).reverse().map(j => ({ id: j.id, mode: j.mode, projectName: j.projectName, startFrame: j.startFrame, providerId: j.providerId, provider: s.devices.find(d => d.id === j.providerId)?.name || 'Automat', status: j.status, execution: j.execution, total: j.tasks.length, done: j.tasks.filter(t => t.status === 'done').length, spent: j.spent / 1000, reserved: j.escrow / 1000, error: j.error, waiting: this.waitingReason(j), frames: j.frames, contributions: j.tasks.filter(t => t.status === 'done').reduce((a, t) => { const name = s.devices.find(d => d.id === t.deviceId)?.name || 'PC'; a[name] = (a[name] || 0) + 1; return a; }, {}) })),
       ledger: s.ledger.filter(l => l.userId === uid).slice(-30).reverse().map(l => ({ ...l, delta: l.delta / 1000 })) };
   }
   close() { this.store.close(); }

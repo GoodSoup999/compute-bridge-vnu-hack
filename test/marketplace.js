@@ -44,16 +44,28 @@ async function main() {
     assert.ok(!html.includes('name="server"'), 'no URL entry');
     assert.ok(!html.toLowerCase().includes('party'), 'no group UI');
     const key = html.match(/meta name="cb-key" content="([^"]+)"/)[1];
+    const upload = async bytes => {
+      const r = await fetch(url + 'local/project?name=desktop-upload.blend', { method: 'PUT', headers: { 'x-app-key': key, 'content-type': 'application/octet-stream' }, body: bytes });
+      const value = await r.json(); if (!r.ok) throw new Error(value.error); return value;
+    };
     const call = async (endpoint, data) => {
       const r = await fetch(url + 'local/' + endpoint, { method: data === undefined ? 'GET' : 'POST', headers: { 'x-app-key': key, 'content-type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
       const value = await r.json(); if (!r.ok) throw Object.assign(new Error(value.error), { status: r.status }); return value;
     };
     await call('register', { name, email: `${name}-${suffix}@bridge.test`, password: 'test-password-123', server: 'https://ignored.invalid' });
     assert.equal((await call('state')).state.user.credits, 100, 'account uses configured hub, not input URL');
-    return { call, url };
+    return { call, url, upload };
   }
   try {
     const buyer = await bridge('buyer'); const seller = await bridge('seller'); const other = await bridge('other');
+    if (!process.env.TEST_PUBLIC_HUB_URL) {
+      const project = await buyer.upload(Buffer.from('BLENDER-v300desktop-fixture'));
+      assert.ok((await buyer.call('state')).state.projects.some(p => p.id === project.id));
+      assert.equal((await seller.call('state')).state.projects.length, 0);
+      await buyer.call('action', { endpoint: 'projects/delete', data: { projectId: project.id } });
+      await assert.rejects(buyer.upload(Buffer.from('invalid file')), /blend/);
+      console.log('PASS desktop project transfer: authenticated binary upload, own project list, deletion and invalid file rejection');
+    }
     assert.equal((await buyer.call('state')).deviceId, undefined, 'consumer login needs no local device registration');
     assert.equal((await buyer.call('state')).state.devices.filter(d => d.market && d.online).length, 0, 'login does not secretly offer a PC');
     await seller.call('device', { name: 'Selected PC', hours: 1, slots: 1, cpuPercent: 75, ramGb: 4, vramGb: 0, gpuRender: false, price: 1 });
