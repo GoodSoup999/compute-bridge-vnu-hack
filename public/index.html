@@ -30,17 +30,19 @@
     </section>
     <section class="card">
       <h2>2. Trimite lucrarea</h2>
-      <p>Randare împărțită între PC-uri pe CPU. GPU-urile sunt afișate ca inventar.</p>
+      <p>Randare pe GPU cu Blender sau calcul distribuit pe CPU.</p>
       <form id="form">
         <label>Tipul lucrării
           <select id="mode">
+            <option value="blender">Animație 3D cu Blender GPU</option>
             <option value="raytrace">Randare 3D cu ray tracing</option>
             <option value="fractal">Imagine fractală</option>
           </select>
         </label>
         <label>Lățime<input id="width" type="number" min="200" max="1600" value="1600"></label>
         <label>Înălțime<input id="height" type="number" min="200" max="1000" value="900"></label>
-        <label id="qualityLabel">Mostre per pixel<input id="quality" type="number" min="1" max="1024" value="512"></label>
+        <label id="qualityLabel">Mostre per cadru<input id="quality" type="number" min="8" max="256" value="32"></label>
+        <label id="framesLabel">Cadre în animație<input id="frames" type="number" min="2" max="16" value="8"></label>
         <button id="submit" type="submit">Pornește lucrarea</button>
       </form>
     </section>
@@ -53,19 +55,32 @@
   <script>
     const $ = id => document.getElementById(id);
     let token = sessionStorage.getItem('bridgeToken') || '';
+    let animationTimer = null;
+    let objectUrls = [];
+    function clearImage() {
+      if (animationTimer) clearInterval(animationTimer);
+      animationTimer = null;
+      for (const url of objectUrls) URL.revokeObjectURL(url);
+      objectUrls = [];
+      $('image').replaceChildren();
+      $('image').dataset.id = '';
+    }
     $('token').value = token;
     $('save').onclick = () => { token = $('token').value.trim(); sessionStorage.setItem('bridgeToken', token); refresh(); };
     $('mode').onchange = () => {
-      const ray = $('mode').value === 'raytrace';
-      $('width').max = ray ? 1600 : 3000;
-      $('height').max = ray ? 1000 : 2000;
-      $('width').value = ray ? 1600 : 2400;
-      $('height').value = ray ? 900 : 1600;
-      $('quality').min = ray ? 1 : 100;
-      $('quality').max = ray ? 1024 : 10000;
-      $('quality').value = ray ? 512 : 5000;
-      $('qualityLabel').firstChild.textContent = ray ? 'Mostre per pixel' : 'Iterații';
+      const mode = $('mode').value;
+      const fractal = mode === 'fractal';
+      $('width').max = fractal ? 3000 : 1600;
+      $('height').max = fractal ? 2000 : 1000;
+      $('width').value = mode === 'blender' ? 640 : fractal ? 2400 : 1600;
+      $('height').value = mode === 'blender' ? 360 : fractal ? 1600 : 900;
+      $('quality').min = fractal ? 100 : mode === 'blender' ? 8 : 1;
+      $('quality').max = fractal ? 10000 : mode === 'blender' ? 256 : 1024;
+      $('quality').value = fractal ? 5000 : mode === 'blender' ? 32 : 512;
+      $('qualityLabel').firstChild.textContent = fractal ? 'Iterații' : mode === 'blender' ? 'Mostre per cadru' : 'Mostre per pixel';
+      $('framesLabel').hidden = mode !== 'blender';
     };
+    $('mode').onchange();
     async function api(url, options = {}) {
       const response = await fetch(url, { ...options, headers: { 'x-bridge-token': token, 'content-type': 'application/json' } });
       if (!response.ok) throw new Error((await response.json()).error || 'Eroare de rețea');
@@ -80,7 +95,8 @@
         await api('/api/job', { method: 'POST', body: JSON.stringify({
           mode, width: Number($('width').value), height: Number($('height').value),
           iterations: mode === 'fractal' ? quality : undefined,
-          samples: mode === 'raytrace' ? quality : undefined
+          samples: mode !== 'fractal' ? quality : undefined,
+          frames: mode === 'blender' ? Number($('frames').value) : undefined
         }) });
         $('message').textContent = 'Lucrarea a pornit.';
         await refresh();
@@ -96,31 +112,41 @@
         for (const p of state.providers) {
           const div = document.createElement('div');
           div.className = 'provider';
-          div.textContent = `${p.online ? '🟢' : '⚪'} ${p.name}: ${p.cpu}; ${p.ramGb} GB RAM; ${p.gpu}, ${p.vramGb} GB VRAM; ${p.slots} sloturi CPU; ${p.completed} bucăți terminate`;
+          div.textContent = `${p.online ? '🟢' : '⚪'} ${p.name}: ${p.cpu}; ${p.ramGb} GB RAM; ${p.gpu}, ${p.vramGb} GB VRAM; ${p.slots} sloturi CPU; Blender GPU ${p.gpuRender ? 'disponibil' : 'indisponibil'}; ${p.completed} bucăți terminate`;
           $('providers').append(div);
         }
         if (!state.providers.length) $('providers').textContent = 'Niciun PC furnizor conectat.';
         const j = state.job;
         $('submit').disabled = j?.status === 'running';
         if (!j) return;
-        if ($('image').dataset.id && $('image').dataset.id !== j.id) {
-          $('image').replaceChildren();
-          $('image').dataset.id = '';
-        }
+        if ($('image').dataset.id && $('image').dataset.id !== j.id) clearImage();
         const seconds = Math.round(((j.finishedAt || Date.now()) - j.startedAt) / 1000);
         $('job').replaceChildren();
         const summary = document.createElement('p');
-        summary.textContent = `${j.mode === 'raytrace' ? 'Randare 3D' : 'Fractal'} — ${j.status === 'done' ? 'finalizat' : 'în curs'}: ${j.done}/${j.total} bucăți, ${seconds} secunde. Cost simulat: ${j.costRon.toFixed(4)} RON; energie estimată: ${j.energyKwh.toFixed(5)} kWh.`;
+        summary.textContent = `${j.mode === 'blender' ? 'Animație 3D GPU' : j.mode === 'raytrace' ? 'Randare 3D CPU' : 'Fractal CPU'} — ${j.status === 'done' ? 'finalizat' : j.status === 'error' ? 'eroare' : 'în curs'}: ${j.done}/${j.total} ${j.mode === 'blender' ? 'cadre' : 'bucăți'}, ${seconds} secunde. Cost simulat: ${j.costRon.toFixed(4)} RON; energie estimată: ${j.energyKwh.toFixed(5)} kWh.${j.error ? ' Eroare: ' + j.error : ''}`;
         $('job').append(summary);
         const bar = document.createElement('progress'); bar.value = j.done; bar.max = j.total; $('job').append(bar);
         const detail = document.createElement('p');
-        detail.textContent = Object.entries(j.contributions).map(([name, c]) => `${name}: ${c.tiles} bucăți, ${(c.computeMs/1000).toFixed(1)} s CPU`).join(' | ');
+        detail.textContent = Object.entries(j.contributions).map(([name, c]) => `${name}: ${c.tiles} ${j.mode === 'blender' ? 'cadre' : 'bucăți'}, ${(c.computeMs/1000).toFixed(1)} s ${j.mode === 'blender' ? c.gpuBackend || 'GPU' : 'CPU'}`).join(' | ');
         $('job').append(detail);
         if (j.imageUrl && $('image').dataset.id !== j.id) {
           const blob = await (await api(j.imageUrl)).blob();
-          $('image').replaceChildren();
-          const img = document.createElement('img'); img.src = URL.createObjectURL(blob); img.alt = 'Imagine randată de PC-urile furnizoare';
+          clearImage();
+          const img = document.createElement('img'); img.src = URL.createObjectURL(blob); objectUrls.push(img.src); img.alt = 'Imagine randată de PC-urile furnizoare';
           $('image').append(img); $('image').dataset.id = j.id;
+        }
+        if (j.frameUrls && $('image').dataset.id !== j.id) {
+          const blobs = await Promise.all(j.frameUrls.map(async url => (await api(url)).blob()));
+          clearImage();
+          objectUrls = blobs.map(blob => URL.createObjectURL(blob));
+          const img = document.createElement('img'); img.alt = 'Animație randată pe GPU-urile furnizoare';
+          const caption = document.createElement('p'); caption.className = 'muted';
+          let frame = 0;
+          const showFrame = () => { img.src = objectUrls[frame]; caption.textContent = `Cadru ${frame + 1}/${objectUrls.length}`; frame = (frame + 1) % objectUrls.length; };
+          showFrame();
+          animationTimer = setInterval(showFrame, 250);
+          $('image').append(img, caption);
+          $('image').dataset.id = j.id;
         }
       } catch (error) { $('message').textContent = error.message; $('message').className = 'error'; }
     }
