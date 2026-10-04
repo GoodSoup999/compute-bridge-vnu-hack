@@ -2,7 +2,7 @@
 
 Aplicație Windows pentru a oferi puterea PC-ului și a folosi PC-uri disponibile prin internet. Serverul echipei este inclus în configurația aplicației: utilizatorii nu introduc linkuri sau coduri.
 
-[Descarcă aplicația Windows 0.5](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.5.0-beta.1). Dezarhivează întregul folder și pornește **ComputeBridge.exe**. Clientul nu cere Node.js. Pentru GPU sunt necesare Blender și o placă NVIDIA.
+[Descarcă aplicația Windows 0.5](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.5.1-beta.1). Dezarhivează întregul folder și pornește **ComputeBridge.exe**. Clientul nu cere Node.js. Pentru GPU sunt necesare Blender și o placă NVIDIA.
 
 ## Fluxul principal
 

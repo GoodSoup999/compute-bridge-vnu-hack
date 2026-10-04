@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const http = require('node:http');
 const { createHubServer } = require('../cloud/server');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -11,7 +12,21 @@ async function main() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bridge-desktop-flow-'));
   const app = createHubServer();
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
-  const hub = process.env.TEST_PUBLIC_HUB_URL || 'http://127.0.0.1:' + app.server.address().port;
+  let failRegistration = false;
+  const proxy = http.createServer((req, res) => {
+    if (failRegistration && req.url === '/v1/devices' && req.method === 'POST') {
+      failRegistration = false;
+      res.writeHead(503, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Înregistrare temporar indisponibilă' }));
+      req.resume(); return;
+    }
+    const upstream = http.request({ host: '127.0.0.1', port: app.server.address().port, path: req.url, method: req.method, headers: req.headers }, reply => {
+      res.writeHead(reply.statusCode, reply.headers); reply.pipe(res);
+    });
+    upstream.on('error', () => { res.writeHead(502); res.end(); }); req.pipe(upstream);
+  });
+  await new Promise(r => proxy.listen(0, '127.0.0.1', r));
+  const hub = process.env.TEST_PUBLIC_HUB_URL || 'http://127.0.0.1:' + proxy.address().port;
   const children = [];
   const suffix = process.env.TEST_EMAIL_SUFFIX || Date.now();
   async function bridge(name) {
@@ -37,6 +52,7 @@ async function main() {
   }
   try {
     const buyer = await bridge('buyer'); const seller = await bridge('seller'); const other = await bridge('other');
+    assert.equal((await buyer.call('state')).deviceId, undefined, 'consumer login needs no local device registration');
     assert.equal((await buyer.call('state')).state.devices.filter(d => d.market && d.online).length, 0, 'login does not secretly offer a PC');
     await seller.call('device', { name: 'Selected PC', hours: 1, slots: 1, cpuPercent: 75, ramGb: 4, vramGb: 0, gpuRender: false, price: 1 });
     await other.call('device', { name: 'Other PC', hours: 1, slots: 1, cpuPercent: 50, ramGb: 4, vramGb: 0, gpuRender: false, price: 1 });
@@ -44,6 +60,14 @@ async function main() {
     const offered = state.state.devices.find(d => d.name === 'Selected PC');
     assert.ok(offered?.online); assert.equal(state.state.devices.filter(d => d.market && d.online).length, 2);
     const params = { providerId: offered.id, execution: 'remote', mode: 'fractal', width: 200, height: 200, iterations: 100, minRam: 2, budget: 5 };
+    if (!process.env.TEST_PUBLIC_HUB_URL) {
+      failRegistration = true;
+      await assert.rejects(buyer.call('job', params), /Înregistrare temporar indisponibilă/);
+      const retryState = await buyer.call('state');
+      assert.equal(retryState.state.user.credits, 100, 'registration failure does not spend credits');
+      assert.equal(retryState.deviceId, undefined);
+      assert.equal(retryState.state.jobs.length, 0);
+    }
     await buyer.call('job', params);
     let job;
     for (let i = 0; i < 160; i++) { state = await buyer.call('state'); job = state.state.jobs[0]; if (job.status === 'done') break; await sleep(100); }
@@ -86,6 +110,7 @@ async function main() {
   } finally {
     for (const child of children) { child.kill(); if (child.exitCode === null) await new Promise(r => child.once('exit', r)); }
     await app.close();
+    await new Promise(r => proxy.close(r));
     if (path.resolve(dir).startsWith(path.resolve(os.tmpdir()) + path.sep)) fs.rmSync(dir, { recursive: true, force: true });
   }
 }

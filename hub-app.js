@@ -33,7 +33,7 @@ async function body(req) { const parts = []; let n = 0; for await (const c of re
 async function configure(input = {}) {
   if (agent?.running) throw new Error('Oprește partajarea înainte de a schimba configurația');
   const hw = await hardware; const gpu = hw.gpus.find(g => g.nvidia);
-  const defaults = { name: hw.hostname, slots: Math.max(1, Math.min(2, hw.threads - 1)), cpuPercent: 50, gpuRender: false, ramGb: Math.max(1, Math.min(4, hw.ramGb - 2)), vramGb: gpu?.vramGb || 0, until: Date.now() + 3600000, price: 1 };
+  const defaults = { name: hw.hostname, slots: Math.max(1, Math.min(2, hw.threads - 1)), cpuPercent: 50, gpuRender: false, ramGb: Math.max(1, Math.min(4, hw.ramGb - 2)), vramGb: 0, until: Date.now() + 3600000, price: 1 };
   const next = { ...defaults, ...input, cpu: hw.cpu, gpu: gpu?.name || '' };
   if (!Number.isInteger(Number(next.slots)) || next.slots < 0 || next.slots > Math.min(12, hw.threads)) throw new Error('Număr de fire CPU invalid');
   if (next.ramGb > Math.max(1, hw.ramGb - 1)) throw new Error('Lasă minimum 1 GB RAM pentru sistem');
@@ -86,8 +86,8 @@ const ui = http.createServer(async (req, res) => {
         if (account) throw new Error('Ieși din cont înainte de schimbarea serviciului');
         checkedAt = 0; await checkHub(); if (!hubStatus.connected) throw new Error(hubStatus.message);
         const session = await request(server, '', '/v1/auth/' + (req.url.endsWith('register') ? 'register' : 'login'), 'POST', { email: b.email, password: b.password, name: b.name });
-        account = { token: session.token }; account.id = (await call('state')).user.id;
-        await configure();
+        const state = await request(server, session.token, '/v1/state');
+        account = { token: session.token, id: state.user.id };
       } else if (req.url === '/local/logout') {
         try { await agent?.stop(true); if (account) await call('auth/logout', 'POST', {}); }
         finally { account = device = config = agent = null; }
@@ -98,10 +98,11 @@ const ui = http.createServer(async (req, res) => {
       }
       else if (req.url === '/local/stop') { if (b.force) await agent?.stop(true); else await agent?.drain(); }
       else if (req.url === '/local/job') {
+        if (!account) throw new Error('Autentifică-te');
         if (b.execution === 'hybrid') {
           if (!agent?.running) await configure({ ...config, market: false, until: Date.now() + 3600000 });
           await startAgent();
-        }
+        } else if (!device) await configure({ market: false, slots: 0, ramGb: 1, vramGb: 0, gpuRender: false });
         await call('jobs', 'POST', { ...b, requestDeviceId: device.id });
       }
       else if (req.url === '/local/action') {
