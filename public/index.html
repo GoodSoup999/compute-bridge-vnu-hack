@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Compute Bridge</title>
+  <style>
+    :root{font-family:system-ui,Segoe UI,sans-serif;color:#e9edf5;background:#0d1423}
+    *{box-sizing:border-box}body{max-width:1050px;margin:0 auto;padding:28px}h1{margin-bottom:4px}p{color:#aebbd0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:20px 0}
+    .card{background:#172238;border:1px solid #30415e;border-radius:12px;padding:18px}
+    input,button{font:inherit;border-radius:8px;padding:9px 11px}input{width:100%;color:#fff;background:#0e182b;border:1px solid #40516d;margin:4px 0 12px}
+    button{border:0;background:#57a9ff;color:#081321;font-weight:700;cursor:pointer}button:disabled{opacity:.5;cursor:default}
+    label{font-size:14px;color:#c6d3e5}.muted{color:#9aabc3}.error{color:#ff9e9e}.ok{color:#91e6b1}
+    img{max-width:100%;border-radius:10px;border:1px solid #30415e}progress{width:100%;height:18px}
+    code{color:#b4d8ff}.provider{border-top:1px solid #33425c;padding:10px 0}
+  </style>
+</head>
+<body>
+  <h1>Compute Bridge</h1>
+  <p>Două PC-uri oferă resurse. Un al treilea trimite o lucrare și primește rezultatul.</p>
+  <div class="card">
+    <label>Codul de acces afișat de server<input id="token" type="password" autocomplete="off" placeholder="Lipește codul aici"></label>
+    <button id="save">Conectează</button> <span id="message" class="muted"></span>
+  </div>
+  <div class="grid">
+    <section class="card">
+      <h2>1. PC-uri disponibile</h2>
+      <div id="providers" class="muted">Introduceți codul de acces.</div>
+    </section>
+    <section class="card">
+      <h2>2. Trimite lucrarea</h2>
+      <p>Demo: randarea paralelă a unei imagini fractale pe CPU. GPU-urile sunt afișate ca inventar.</p>
+      <form id="form">
+        <label>Lățime<input id="width" type="number" min="200" max="3000" value="2400"></label>
+        <label>Înălțime<input id="height" type="number" min="200" max="2000" value="1600"></label>
+        <label>Complexitate<input id="iterations" type="number" min="100" max="10000" value="5000"></label>
+        <button id="submit" type="submit">Pornește lucrarea</button>
+      </form>
+    </section>
+  </div>
+  <section class="card">
+    <h2>3. Progres și rezultat</h2>
+    <div id="job" class="muted">Nicio lucrare pornită.</div>
+    <div id="image"></div>
+  </section>
+  <script>
+    const $ = id => document.getElementById(id);
+    let token = sessionStorage.getItem('bridgeToken') || '';
+    $('token').value = token;
+    $('save').onclick = () => { token = $('token').value.trim(); sessionStorage.setItem('bridgeToken', token); refresh(); };
+    async function api(url, options = {}) {
+      const response = await fetch(url, { ...options, headers: { 'x-bridge-token': token, 'content-type': 'application/json' } });
+      if (!response.ok) throw new Error((await response.json()).error || 'Eroare de rețea');
+      return response;
+    }
+    $('form').onsubmit = async event => {
+      event.preventDefault();
+      $('submit').disabled = true;
+      try {
+        await api('/api/job', { method: 'POST', body: JSON.stringify({
+          width: Number($('width').value), height: Number($('height').value), iterations: Number($('iterations').value)
+        }) });
+        $('message').textContent = 'Lucrarea a pornit.';
+        await refresh();
+      } catch (error) { $('message').textContent = error.message; $('submit').disabled = false; }
+    };
+    async function refresh() {
+      if (!token) return;
+      try {
+        const state = await (await api('/api/state')).json();
+        $('message').textContent = 'Conectat';
+        $('message').className = 'ok';
+        $('providers').replaceChildren();
+        for (const p of state.providers) {
+          const div = document.createElement('div');
+          div.className = 'provider';
+          div.textContent = `${p.online ? '🟢' : '⚪'} ${p.name}: ${p.cpu}; ${p.ramGb} GB RAM; ${p.gpu}, ${p.vramGb} GB VRAM; ${p.slots} sloturi CPU; ${p.completed} bucăți terminate`;
+          $('providers').append(div);
+        }
+        if (!state.providers.length) $('providers').textContent = 'Niciun PC furnizor conectat.';
+        const j = state.job;
+        $('submit').disabled = j?.status === 'running';
+        if (!j) return;
+        if ($('image').dataset.id && $('image').dataset.id !== j.id) {
+          $('image').replaceChildren();
+          $('image').dataset.id = '';
+        }
+        const seconds = Math.round(((j.finishedAt || Date.now()) - j.startedAt) / 1000);
+        $('job').replaceChildren();
+        const summary = document.createElement('p');
+        summary.textContent = `${j.status === 'done' ? 'Finalizat' : 'În curs'}: ${j.done}/${j.total} bucăți, ${seconds} secunde. Cost simulat: ${j.costRon.toFixed(4)} RON; energie estimată: ${j.energyKwh.toFixed(5)} kWh.`;
+        $('job').append(summary);
+        const bar = document.createElement('progress'); bar.value = j.done; bar.max = j.total; $('job').append(bar);
+        const detail = document.createElement('p');
+        detail.textContent = Object.entries(j.contributions).map(([name, c]) => `${name}: ${c.tiles} bucăți, ${(c.computeMs/1000).toFixed(1)} s CPU`).join(' | ');
+        $('job').append(detail);
+        if (j.imageUrl && $('image').dataset.id !== j.id) {
+          const blob = await (await api(j.imageUrl)).blob();
+          $('image').replaceChildren();
+          const img = document.createElement('img'); img.src = URL.createObjectURL(blob); img.alt = 'Imagine fractală randată de PC-urile furnizoare';
+          $('image').append(img); $('image').dataset.id = j.id;
+        }
+      } catch (error) { $('message').textContent = error.message; $('message').className = 'error'; }
+    }
+    setInterval(refresh, 1500); refresh();
+  </script>
+</body>
+</html>
