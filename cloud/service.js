@@ -78,7 +78,8 @@ class Hub {
   eligible(d, j, kind) {
     if (!this.online(d) || j.status !== 'running') return false;
     if ((j.mode === 'blender') !== (kind === 'gpu') || (kind === 'gpu' ? !d.gpuRender || d.vramGb < j.minVram : d.slots < 1) || d.ramGb < j.minRam) return false;
-    if (d.id === j.requestDeviceId) return j.execution === 'hybrid';
+    // Start with a remote provider before adding local contribution in hybrid mode.
+    if (d.id === j.requestDeviceId) return j.execution === 'hybrid' && j.tasks.some(t => t.deviceId && t.deviceId !== d.id && ['assigned', 'done'].includes(t.status));
     return d.market && d.ownerId !== j.ownerId && (!j.providerId || d.id === j.providerId);
   }
   free(j, d) { return d.id === j.requestDeviceId && j.execution === 'hybrid'; }
@@ -157,7 +158,7 @@ class Hub {
         const charge = this.quote(j, t, d); if (charge > available) continue;
         // Prefer compatible available capacity with lower price and better observed completion time.
         const score = x => this.quote(j, t, x) * (1 + x.averageMs / 60000) * (1 + x.failed / (x.completed + 1));
-        const better = s.devices.some(other => other.id !== d.id && this.eligible(other, j, kind) && (other.commitment !== 'reserved' || this.user(other.ownerId).balance >= Math.min(1000, Math.max(10, Math.ceil(this.quote(j, t, other) * .1)))) && score(other) < score(d) * .85 &&
+        const better = s.devices.some(other => other.id !== d.id && other.id !== j.requestDeviceId && this.eligible(other, j, kind) && (other.commitment !== 'reserved' || this.user(other.ownerId).balance >= Math.min(1000, Math.max(10, Math.ceil(this.quote(j, t, other) * .1)))) && score(other) < score(d) * .85 &&
           s.jobs.flatMap(k => k.tasks.filter(q => q.status === 'assigned' && q.deviceId === other.id && (k.mode === 'blender') === (kind === 'gpu'))).length < (kind === 'gpu' ? 1 : other.slots));
         if (better) continue;
         const bond = charge && d.commitment === 'reserved' ? Math.min(1000, Math.max(10, Math.ceil(charge * .1))) : 0;

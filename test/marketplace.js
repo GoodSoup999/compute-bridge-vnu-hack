@@ -13,6 +13,7 @@ async function main() {
   await new Promise(r => app.server.listen(0, '127.0.0.1', r));
   const hub = process.env.TEST_PUBLIC_HUB_URL || 'http://127.0.0.1:' + app.server.address().port;
   const children = [];
+  const suffix = process.env.TEST_EMAIL_SUFFIX || Date.now();
   async function bridge(name) {
     const child = spawn(process.execPath, [path.resolve(__dirname, '../hub-app.js'), '--port', '0'], {
       windowsHide: true, env: { ...process.env, CB_HUB_URL: hub, CB_DATA_DIR: path.join(dir, name) }, stdio: ['ignore', 'pipe', 'pipe']
@@ -30,7 +31,7 @@ async function main() {
       const r = await fetch(url + 'local/' + endpoint, { method: data === undefined ? 'GET' : 'POST', headers: { 'x-app-key': key, 'content-type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
       const value = await r.json(); if (!r.ok) throw Object.assign(new Error(value.error), { status: r.status }); return value;
     };
-    await call('register', { name, email: `${name}-${Date.now()}@bridge.test`, password: 'test-password-123', server: 'https://ignored.invalid' });
+    await call('register', { name, email: `${name}-${suffix}@bridge.test`, password: 'test-password-123', server: 'https://ignored.invalid' });
     assert.equal((await call('state')).state.user.credits, 100, 'account uses configured hub, not input URL');
     return { call, url };
   }
@@ -64,6 +65,7 @@ async function main() {
     await buyer.call('job', { ...params, execution: 'hybrid' });
     for (let i = 0; i < 160; i++) { state = await buyer.call('state'); job = state.state.jobs[0]; if (job.status === 'done') break; await sleep(100); }
     assert.equal(job.status, 'done'); assert.ok(state.agent);
+    assert.ok(job.contributions['Selected PC'] > 0, 'hybrid actually uses a remote PC');
     assert.equal(state.state.devices.find(d => d.id === state.deviceId).market, false, 'local contribution does not publish an unwanted offer');
     await buyer.call('stop', { force: true });
     await buyer.call('logout', {}); assert.equal((await buyer.call('state')).state, null);
