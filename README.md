@@ -1,6 +1,6 @@
 # Compute Bridge — prototip VNU Hack
 
-Două PC-uri furnizoare calculează în paralel, iar al treilea rulează coordonatorul și interfața web. Modul **Animație 3D cu Blender GPU** distribuie cadre între cele două laptopuri și le randează cu Cycles pe NVIDIA OptiX sau CUDA. Modurile **Randare 3D cu ray tracing** și **Imagine fractală** distribuie bucăți din imagine pe CPU. VRAM-ul celor două GPU-uri nu este combinat: fiecare GPU primește cadre separate.
+Două PC-uri furnizoare calculează în paralel, iar al treilea rulează coordonatorul și interfața web. Modul **Animație 3D cu Blender GPU** distribuie cadre între cele două laptopuri și le randează cu Cycles pe NVIDIA OptiX sau CUDA. Modurile **Randare 3D cu ray tracing** și **Imagine fractală** distribuie bucăți din imagine pe CPU. Sarcinile stau într-o coadă comună: PC-ul care termină primul preia imediat următorul cadru sau următoarea bucată. VRAM-ul celor două GPU-uri nu este combinat: fiecare GPU procesează separat cadrele pe care le primește.
 
 ## Ce trebuie instalat
 
@@ -45,6 +45,7 @@ node provider.js --server http://192.168.1.10:3000 --token COD --name PC-5060 --
 Valorile `--slots`, `--watts` și `--rate` sunt configurabile. `slots` este numărul de lucrători CPU simultani; fiecare PC poate executa un cadru GPU simultan. `watts` și `rate` sunt **ipoteze de demo**, nu măsurători sau prețuri reale. La conectare, terminalul furnizorului trebuie să afișeze calea Blender după `randare Blender GPU:`. Dacă arată `indisponibilă`, verificați instalarea Blender și parametrul `--vram`.
 
 Pe un PC Windows cu Blender și NVIDIA puteți rula `node test/gpu-smoke.js` din folderul proiectului. Testul pornește temporar două procese furnizor pe același GPU, verifică distribuția a două cadre și apoi verifică modul CPU. Acest test nu confirmă performanța celor două laptopuri fizice.
+Testul `node test/scheduling.js` verifică separat că un furnizor rapid poate prelua mai multe cadre și bucăți CPU din coada comună.
 
 ## Dacă furnizorul afișează `fetch failed`
 
@@ -59,7 +60,7 @@ Pe un PC Windows cu Blender și NVIDIA puteți rula `node test/gpu-smoke.js` din
 
 1. Arătați cele două PC-uri conectate și resursele lor în interfață.
 2. Selectați „Animație 3D cu Blender GPU”. Valorile implicite sunt acum **48 de cadre, 960 × 540 și 96 de mostre per cadru**. Scena conține sticlă, suprafețe metalice, reflexii, lumini colorate, 20 de coloane și obiecte animate. Pentru un demo scurt, folosiți 16 cadre, 640 × 360 și 32 de mostre; pentru un test mai greu, 64 de cadre, 1280 × 720 și 128 de mostre. Primul cadru poate dura mai mult din cauza inițializării Blender/OptiX.
-3. Arătați progresul și câte cadre a randat fiecare PC. Terminalele furnizorilor arată `GPU OPTIX:...` sau `GPU CUDA:...` după fiecare cadru.
+3. Arătați progresul și câte cadre a randat fiecare PC. PC-ul mai rapid poate prelua mai multe cadre; distribuția nu este fixată la cadre pare/impare. Terminalele furnizorilor arată `GPU OPTIX:...` sau `GPU CUDA:...` după fiecare cadru.
 4. La final, arătați animația, timpul, costul simulat și energia estimată. Reglați viteza de redare cu cursorul de sub rezultat, între 1 și 30 cadre/secundă. Demonstrați apoi și modul CPU pentru comparație.
 5. Pentru comparație, opriți un furnizor, așteptați să apară offline (aproximativ 15 secunde), apoi porniți aceeași lucrare și comparați timpul. Faceți această comparație înainte de prezentare și notați rezultatele reale.
 

@@ -81,19 +81,18 @@ function newJob(input) {
       mode === 'raytrace' ? 'Ray tracing: max. 1600 × 1000, 1–1024 mostre/pixel' :
       'Fractal: max. 3000 × 2000, 100–10000 iterații');
   }
-  const online = [...providers.values()].filter(p => Date.now() - p.lastSeen < 15000 && (mode !== 'blender' || p.gpuRender));
-  if (mode === 'blender' && !online.length) throw new Error('Niciun PC cu Blender GPU disponibil');
+  const availableGpu = [...providers.values()].some(p => p.gpuRender && Date.now() - p.lastSeen < 15000);
+  if (mode === 'blender' && !availableGpu) throw new Error('Niciun PC cu Blender GPU disponibil');
   const tiles = [];
   if (mode === 'blender') {
     for (let frame = 0; frame < frameCount; frame++) {
-      tiles.push({ id: crypto.randomUUID(), frame, status: 'pending', ownerId: online[frame % online.length].id });
+      tiles.push({ id: crypto.randomUUID(), frame, status: 'pending' });
     }
   } else {
     const tileRows = mode === 'raytrace' ? 16 : 32;
     for (let y = 0; y < height; y += tileRows) {
       tiles.push({
-        id: crypto.randomUUID(), y, rows: Math.min(tileRows, height - y), status: 'pending',
-        ownerId: online.length ? online[tiles.length % online.length].id : null
+        id: crypto.randomUUID(), y, rows: Math.min(tileRows, height - y), status: 'pending'
       });
     }
   }
@@ -157,10 +156,8 @@ const server = http.createServer(async (req, res) => {
       if ((job.mode === 'blender') !== (kind === 'gpu') || (kind === 'gpu' && !provider.gpuRender)) {
         return json(res, 200, { task: null });
       }
-      const tile = job.tiles.find(t => t.status === 'pending' && (
-        !t.ownerId || t.ownerId === provider.id ||
-        !providers.has(t.ownerId) || Date.now() - providers.get(t.ownerId).lastSeen >= 15000
-      ));
+      // A free worker takes the next task; faster PCs naturally complete more frames.
+      const tile = job.tiles.find(t => t.status === 'pending');
       if (!tile) return json(res, 200, { task: null });
       tile.status = 'assigned';
       tile.providerId = provider.id;
