@@ -82,6 +82,7 @@ function state() {
     connector: connector && {
       state: connector.state,
       server: connector.server,
+      coordinatorName: connector.coordinatorName,
       id: connector.id,
       name: connector.info.name,
       slots: connector.info.slots,

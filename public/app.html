@@ -316,6 +316,7 @@
                   <p class="n-meta" id="coordJob"></p>
                   <div class="ap-cta">
                     <a class="n-btn n-btn--primary n-btn--lg" id="openPanel" href="#">Deschide panoul de lucru</a>
+                    <button class="n-btn" type="button" id="coordAlsoConn">Oferă și puterea acestui PC</button>
                     <button class="n-btn n-btn--danger" type="button" id="coordStop">Oprește coordonatorul</button>
                   </div>
                 </div>
@@ -636,6 +637,7 @@
               h('li', null, h('span', null, 'Coordonatorul apare singur în lista lor. Dacă nu apare, dă-le adresa de mai sus.')),
               h('li', null, h('span', null, 'Ei scriu codul de acces și apasă ', h('b', null, 'Conectează acest PC'), '.')))));
       const job = c.summary.job;
+      $('coordAlsoConn').hidden = Boolean(st.connector);
       $('coordJob').textContent = job ? `Lucrarea curentă: ${job.status === 'running' ? `${job.done} din ${job.total} gata` : job.status === 'done' ? 'finalizată' : job.status === 'error' ? 'oprită cu o eroare' : 'oprită'}.` : 'Nicio lucrare trimisă încă.';
     }
 
@@ -663,6 +665,15 @@
       announce('Coordonatorul s-a oprit.');
     });
     $('codeToggle').addEventListener('click', () => { codeHidden = !codeHidden; renderCoord(); });
+    $('coordAlsoConn').addEventListener('click', () => {
+      selected = `http://127.0.0.1:${st.coordinator.port}`;
+      const code = st.coordinator.token;
+      go('conn');
+      $('manual').value = '';
+      $('token').value = code; // the code is already known on this PC
+      renderFoundList();
+      updateSteps();
+    });
     $('codeCopy').addEventListener('click', e => st?.coordinator && copy(st.coordinator.token, e.currentTarget));
     $('addrCopy').addEventListener('click', e => copy($('addr').textContent, e.currentTarget));
 
@@ -691,14 +702,22 @@
         $('watts').value = local.get('watts', 120);
         $('token').value = session.get('token');
         buildGpuBox();
-        if (selected && !st?.found.some(f => serverKey(`${f.address}:${f.port}`) === serverKey(selected))) $('manual').value = serverKey(selected);
+        if (selected && !coordinatorChoices().some(f => `${f.address}:${f.port}` === serverKey(selected))) $('manual').value = serverKey(selected);
       }
       renderFoundList();
       updateSteps();
     }
 
-    function renderFoundList() {
+    // Coordinators heard on the network, plus this PC when it runs the coordinator itself:
+    // with only a few laptops, one of them often coordinates and computes at the same time.
+    function coordinatorChoices() {
       const list = (st?.found || []).filter(f => !f.self);
+      if (st?.coordinator) list.unshift({ name: `${st.coordinator.name} (acest PC)`, address: '127.0.0.1', port: st.coordinator.port, self: true });
+      return list;
+    }
+
+    function renderFoundList() {
+      const list = coordinatorChoices();
       const box = $('found');
       if (!list.length) {
         if (!box.querySelector('.ap-searching')) {
@@ -714,7 +733,7 @@
           h('input', { type: 'radio', name: 'coord', value: key, checked: current === key, onchange: () => { selected = `http://${key}`; $('manual').value = ''; updateSteps(); } }),
           h('span', { class: 'ap-option__radio', 'aria-hidden': 'true' }),
           h('span', { class: 'ap-option__main' }, h('b', null, f.name), h('span', null, key)),
-          h('span', { class: 'ap-option__aside' }, h('i', { 'aria-hidden': 'true' }), 'în rețea'));
+          h('span', { class: 'ap-option__aside' }, h('i', { 'aria-hidden': 'true' }), f.self ? 'pornit aici' : 'în rețea'));
       }));
       if (!current && list.length === 1 && !$('manual').value) { selected = `http://${list[0].address}:${list[0].port}`; box.querySelector('input').checked = true; updateSteps(); }
     }
@@ -808,6 +827,8 @@
 
     function coordName(server) {
       const key = serverKey(server);
+      if (st?.connector?.coordinatorName) return st.connector.coordinatorName;
+      if (st?.coordinator && key === `127.0.0.1:${st.coordinator.port}`) return st.coordinator.name;
       return st?.found.find(f => `${f.address}:${f.port}` === key)?.name || key.split(':')[0];
     }
 
