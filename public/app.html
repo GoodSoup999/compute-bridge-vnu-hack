@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="cb-key" content="__APP_KEY__">
+  <title>Compute Bridge</title>
+  <meta name="theme-color" content="#1e1626">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cg fill='none' stroke='%23f1e9ee' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 21.5V8.4'/%3E%3Cpath d='M7.2 7.6 18.6 19'/%3E%3Cpath d='M21 17.4V4.5'/%3E%3Ccircle cx='5' cy='5.6' r='2.7'/%3E%3C/g%3E%3Ccircle cx='21' cy='20.6' r='3' fill='%23f2b49b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/ui.css">
+  <style>
+    /* Desktop app pages. Class prefix: ap-. Everything else comes from ui.css (NODE design system). */
+    .ap-main { padding-top: 44px; padding-bottom: 120px; }
+    .ap-view { display: grid; gap: 28px; animation: cb-in 360ms var(--n-ease); }
+    .ap-back { justify-self: start; margin: -18px 0 -8px -10px; }
+    .ap-hero { display: grid; gap: 12px; max-width: 820px; }
+    .ap-chip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border: 1px solid var(--n-border); border-radius: 999px; background: var(--n-surface); font-size: var(--n-t-13); color: var(--n-text-2); white-space: nowrap; }
+    .ap-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--n-text-3); }
+    .ap-chip[data-tone="live"] i { background: var(--n-accent); box-shadow: 0 0 0 3px var(--n-accent-soft); }
+    .ap-chip[data-tone="warn"] { color: var(--n-warn); border-color: var(--n-warn-line); }
+    .ap-chip[data-tone="warn"] i { background: var(--n-warn); }
+    @media (max-width: 700px) { .ap-chip { display: none; } }
+
+    /* home: two roles */
+    .ap-roles { display: grid; gap: 20px; }
+    @media (min-width: 900px) { .ap-roles { grid-template-columns: 1fr 1fr; } }
+    .ap-role { padding: 0; overflow: hidden; display: grid; grid-template-rows: auto 1fr; cursor: pointer; transition: border-color var(--n-mid) var(--n-ease), transform var(--n-mid) var(--n-ease), box-shadow var(--n-mid) var(--n-ease); }
+    .ap-role:hover { border-color: var(--n-border-strong); transform: translateY(-2px); }
+    .ap-role:focus-within { border-color: var(--n-accent-line); }
+    .ap-role__art { position: relative; height: 190px; border-bottom: 1px solid var(--n-border-soft);
+      background: radial-gradient(420px 200px at 70% 0%, rgb(242 180 155 / 0.09), transparent 70%), radial-gradient(circle at 1px 1px, rgb(241 233 238 / 0.07) 1px, transparent 1.6px) 0 0 / 18px 18px, var(--n-code-bg); }
+    .ap-role__art svg { width: 100%; height: 100%; }
+    .ap-role__body { display: grid; gap: 14px; align-content: start; padding: 22px 24px 24px; }
+    .ap-role__n { font-family: var(--n-serif); font-style: italic; color: var(--n-accent); }
+    .ap-role h2 { font-family: var(--n-serif); font-weight: 400; font-size: clamp(1.75rem, 1.2vw + 1.3rem, 2.25rem); line-height: 1.05; letter-spacing: -0.025em; }
+    .ap-role p { color: var(--n-text-2); font-size: 0.9375rem; max-width: 46ch; }
+    .ap-facts { display: grid; gap: 7px; font-size: var(--n-t-14); color: var(--n-text-2); }
+    .ap-facts li { display: flex; gap: 10px; align-items: baseline; }
+    .ap-facts li::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--n-border-strong); transform: translateY(-2px); }
+    .ap-facts b { color: var(--n-text); font-weight: 550; }
+    .ap-role .n-btn { justify-self: start; margin-top: 6px; }
+    .ap-pc { display: flex; flex-wrap: wrap; gap: 10px 28px; padding: 16px 20px; border: 1px solid var(--n-border); border-radius: 12px; background: rgb(38 29 49 / 0.6); }
+    .ap-pc div { display: grid; gap: 2px; min-width: 0; }
+    .ap-pc dt { font-size: var(--n-t-12); color: var(--n-text-3); }
+    .ap-pc dd { margin: 0; font-size: var(--n-t-14); color: var(--n-text); overflow-wrap: anywhere; }
+    .ap-pc__title { font-family: var(--n-serif); font-style: italic; font-size: 1rem; color: var(--n-text-2); align-self: center; }
+
+    /* a coordinator heard on the network */
+    .ap-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding: 14px 16px 14px 18px; border: 1px solid var(--n-accent-line); border-radius: 12px; background: linear-gradient(90deg, rgb(242 180 155 / 0.1), rgb(242 180 155 / 0.03)); }
+    .ap-banner p { flex: 1 1 320px; font-size: var(--n-t-14); color: var(--n-text-2); }
+    .ap-banner b { color: var(--n-text); }
+    .ap-pulse { position: relative; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--n-accent); }
+    .ap-pulse::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 1px solid var(--n-accent); opacity: 0; animation: ap-ring 2s var(--n-ease) infinite; }
+    @keyframes ap-ring { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(1.8); opacity: 0; } }
+
+    /* steps: node cards joined by a wire */
+    .ap-steps { display: grid; gap: 44px; max-width: 820px; }
+    .ap-step { position: relative; }
+    .ap-step + .ap-step::before { content: ""; position: absolute; left: 34px; top: -45px; width: 1.5px; height: 44px; background: var(--n-border-strong); transition: background var(--n-mid) var(--n-ease); }
+    .ap-step.is-done + .ap-step::before { background: linear-gradient(var(--n-accent), var(--n-accent-line)); }
+    .ap-step .sock--t, .ap-step .sock--b { left: 28px; }
+    .ap-step.is-done > .sock { border-color: var(--n-accent); }
+    .ap-step.is-done > .sock::after { background: var(--n-accent); }
+    .ap-step:first-child > .sock--t { display: none; }
+    .ap-step:last-child > .sock--b { display: none; }
+    .ap-check { margin-left: auto; font-size: var(--n-t-12); color: var(--n-accent); opacity: 0; transition: opacity var(--n-mid) var(--n-ease); }
+    .ap-step.is-done .ap-check { opacity: 1; }
+
+    .ap-found { display: grid; gap: 8px; }
+    .ap-option { position: relative; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--n-border); border-radius: 10px; background: var(--n-bg); cursor: pointer; transition: border-color var(--n-fast) var(--n-ease), background var(--n-fast) var(--n-ease); }
+    .ap-option:hover { border-color: var(--n-border-strong); }
+    .ap-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .ap-option:has(input:checked) { border-color: var(--n-accent-line); background: var(--n-accent-soft); }
+    .ap-option:has(input:focus-visible) { outline: 2px solid var(--n-accent); outline-offset: 2px; }
+    .ap-option__radio { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--n-border-strong); display: grid; place-items: center; }
+    .ap-option:has(input:checked) .ap-option__radio { border-color: var(--n-accent); }
+    .ap-option:has(input:checked) .ap-option__radio::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--n-accent); }
+    .ap-option__main { display: grid; gap: 1px; min-width: 0; }
+    .ap-option__main b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ap-option__main span { font-family: var(--n-mono); font-size: var(--n-t-12); color: var(--n-text-3); }
+    .ap-option__aside { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: var(--n-t-12); color: var(--n-text-3); white-space: nowrap; }
+    .ap-option__aside i { width: 7px; height: 7px; border-radius: 50%; background: var(--n-accent); box-shadow: 0 0 0 3px var(--n-accent-soft); }
+    .ap-searching { display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px dashed var(--n-border); border-radius: 10px; font-size: var(--n-t-14); color: var(--n-text-2); }
+    .ap-radar { position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--n-border-strong); background: radial-gradient(circle, var(--n-accent) 0 3px, transparent 3.5px); }
+    .ap-radar::before, .ap-radar::after { content: ""; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid var(--n-accent-line); animation: ap-ring 2.4s var(--n-ease) infinite; }
+    .ap-radar::after { animation-delay: 1.2s; }
+    .ap-manual { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .ap-row { display: flex; gap: 8px; }
+    .ap-row .n-input { flex: 1; min-width: 0; }
+    .ap-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+    @media (max-width: 560px) { .ap-grid2 { grid-template-columns: 1fr; } }
+    .ap-slots { display: grid; gap: 4px; }
+    .ap-slots__value { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .ap-slots__value b { font-family: var(--n-serif); font-weight: 400; font-size: 2rem; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
+    .ap-gpu { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--n-border-soft); border-radius: 10px; background: rgb(30 22 38 / 0.6); }
+    .ap-details summary { cursor: pointer; font-size: var(--n-t-13); font-weight: 550; color: var(--n-text-2); list-style: none; display: inline-flex; align-items: center; gap: 8px; }
+    .ap-details summary::-webkit-details-marker { display: none; }
+    .ap-details summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--n-fast) var(--n-ease); }
+    .ap-details[open] summary::before { transform: rotate(45deg); }
+    .ap-details > div { margin-top: 12px; }
+    .ap-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+    .ap-checklist { display: grid; gap: 6px; margin: 8px 0 0; padding-left: 18px; list-style: decimal; font-size: var(--n-t-13); color: var(--n-text-2); }
+
+    /* coordinator */
+    .ap-cards { display: grid; gap: 16px; }
+    @media (min-width: 960px) { .ap-cards { grid-template-columns: 1.15fr 1fr; } }
+    .ap-code { display: flex; flex-wrap: wrap; gap: 6px 10px; font-family: var(--n-mono); font-size: clamp(1.25rem, 1.4vw + 0.9rem, 1.75rem); font-weight: 500; letter-spacing: 0.04em; color: var(--n-text); }
+    .ap-code span { padding: 4px 8px; border-radius: 6px; background: var(--n-code-bg); border: 1px solid var(--n-border-soft); }
+    .ap-code.is-hidden span { color: transparent; text-shadow: 0 0 12px rgb(241 233 238 / 0.55); user-select: none; }
+    .ap-addr { font-family: var(--n-mono); font-size: 1.375rem; letter-spacing: 0.01em; }
+    .ap-addr-more { font-family: var(--n-mono); font-size: var(--n-t-12); color: var(--n-text-3); }
+    .ap-howto { display: grid; gap: 10px; counter-reset: s; font-size: var(--n-t-14); color: var(--n-text-2); }
+    .ap-howto li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; counter-increment: s; }
+    .ap-howto li::before { content: counter(s); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--n-border-strong); font-family: var(--n-serif); font-size: 0.875rem; color: var(--n-text); }
+    .ap-howto b { color: var(--n-text); font-weight: 550; }
+    .ap-pcs { display: grid; gap: 8px; }
+    .ap-pcs li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--n-border-soft); border-radius: 10px; background: var(--n-bg); font-size: var(--n-t-14); }
+    .ap-pcs li i { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--n-text-3)); flex: none; }
+    .ap-pcs li b { font-weight: 600; }
+    .ap-pcs li span { margin-left: auto; font-size: var(--n-t-12); color: var(--n-text-3); }
+
+    /* connector at work: the coordinator wired to every slot of this PC */
+    .ap-live { position: relative; display: grid; gap: 28px; }
+    @media (min-width: 900px) { .ap-live { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); column-gap: 110px; align-items: center; } }
+    .ap-live > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+    .ap-live > :not(svg) { position: relative; z-index: 1; }
+    .ap-live .sock--r { top: 50%; margin-top: -6.5px; }
+    .ap-slot { position: relative; display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 46px; padding: 0 2px; border-top: 1px solid var(--n-border-soft); font-size: var(--n-t-14); }
+    .ap-slot:first-child { border-top: 0; }
+    .ap-slot .sock { left: calc(-1 * var(--pad) - 9px); top: 50%; margin-top: -6.5px; }
+    .ap-slot__name { font-size: var(--n-t-12); font-weight: 600; color: var(--n-text-3); }
+    .ap-slot__what { color: var(--n-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ap-slot.is-busy .ap-slot__what { color: var(--n-text); }
+    .ap-slot.is-busy .ap-slot__name { color: var(--n-accent); }
+    .ap-slot__time { font-family: var(--n-mono); font-size: var(--n-t-12); color: var(--n-text-3); }
+    .ap-spinner { display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 50%; border: 2px solid var(--n-accent-soft); border-top-color: var(--n-accent); animation: cb-spin 0.8s linear infinite; }
+    @media (max-width: 899px) { .ap-live .sock, .ap-live > svg { display: none; } }
+    .ap-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 760px) { .ap-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .ap-big { font-family: var(--n-serif); font-weight: 400; font-size: clamp(2.25rem, 2vw + 1.6rem, 3rem); line-height: 1; letter-spacing: -0.03em; font-variant-numeric: lining-nums tabular-nums; }
+    .ap-two { display: grid; gap: 16px; }
+    @media (min-width: 960px) { .ap-two { grid-template-columns: 1fr 1fr; align-items: start; } }
+
+    .ap-closed { display: grid; place-items: center; min-height: 60vh; text-align: center; gap: 10px; }
+    .ap-closed b { font-family: var(--n-serif); font-weight: 400; font-size: 2rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ap-view, .ap-pulse::after, .ap-radar::before, .ap-radar::after, .ap-spinner { animation: none; }
+      .ap-role:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="n-sr-only n-skip" href="#main">Sari la conținut</a>
+  <header class="cb-top">
+    <div class="n-wrap cb-top__in">
+      <a class="n-logo" href="#" id="homeLink" aria-label="Compute Bridge, ecranul de start">
+        <svg viewBox="0 0 26 26" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M5 21.5V8.4"/><path d="M7.2 7.6 18.6 19"/><path d="M21 17.4V4.5"/><circle cx="5" cy="5.6" r="2.7"/>
+          </g>
+          <circle cx="21" cy="20.6" r="3" fill="var(--n-accent)"/>
+        </svg>
+        <span>NODE</span>
+      </a>
+      <span class="cb-top__product">Compute Bridge</span>
+      <span class="n-badge n-badge--outline cb-top__tag">v__VERSION__</span>
+      <div class="cb-top__end">
+        <span class="ap-chip" id="chip"><i aria-hidden="true"></i><span id="chipText">Pregătit</span></span>
+        <button class="n-btn n-btn--sm n-btn--ghost" id="quit" type="button">Închide aplicația</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="cb-canvas">
+    <div class="n-wrap ap-main" id="views">
+
+      <!-- ===================================================== home -->
+      <section class="ap-view" id="v-home" aria-labelledby="homeTitle" hidden>
+        <header class="ap-hero">
+          <p class="n-eyebrow">Compute Bridge · aplicația pentru fiecare PC</p>
+          <h1 class="cb-h1" id="homeTitle">Ce face <em>acest PC</em>?</h1>
+          <p class="cb-lede">Un PC pornește coordonatorul și trimite lucrări. Celelalte își oferă procesorul și placa video. Poți schimba rolul oricând.</p>
+        </header>
+        <div id="foundBanner"></div>
+        <div class="ap-roles">
+          <article class="cb-node ap-role" id="roleConn">
+            <div class="ap-role__art" aria-hidden="true">
+              <svg viewBox="0 0 400 190" preserveAspectRatio="xMidYMid meet" id="artConn">
+                <defs><path id="ac1" d="M92,95 C170,95 180,52 262,52"/><path id="ac2" d="M92,95 C170,95 180,82 262,82"/><path id="ac3" d="M92,95 C170,95 180,112 262,112"/><path id="ac4" d="M92,95 C170,95 180,142 262,142"/></defs>
+                <g fill="none" stroke="#54436a" stroke-width="1.5"><use href="#ac1"/><use href="#ac2"/><use href="#ac3"/><use href="#ac4"/></g>
+                <circle cx="70" cy="95" r="22" fill="#261d31" stroke="#9c8ba6" stroke-width="1.5"/>
+                <circle cx="70" cy="95" r="5" fill="#c8b9cc"/>
+                <text x="70" y="140" text-anchor="middle" font-size="11" fill="#9c8ba6" font-family="Schibsted Grotesk Variable, sans-serif">coordonator</text>
+                <rect x="262" y="30" width="112" height="134" rx="10" fill="#2d2339" stroke="#f2b49b" stroke-opacity="0.55"/>
+                <text x="318" y="24" text-anchor="middle" font-size="11" fill="#f2b49b" font-family="Schibsted Grotesk Variable, sans-serif">acest PC</text>
+                <g fill="#1e1626" stroke="#f2b49b" stroke-width="2"><circle cx="262" cy="52" r="5"/><circle cx="262" cy="82" r="5"/><circle cx="262" cy="112" r="5"/><circle cx="262" cy="142" r="5"/></g>
+                <g font-size="10" fill="#c8b9cc" font-family="JetBrains Mono Variable, monospace"><text x="278" y="55">slot 1</text><text x="278" y="85">slot 2</text><text x="278" y="115">slot 3</text><text x="278" y="145">GPU</text></g>
+                <g fill="#f2b49b">
+                  <circle r="3.2"><animateMotion dur="2.4s" repeatCount="indefinite" begin="0s"><mpath href="#ac1"/></animateMotion></circle>
+                  <circle r="3.2"><animateMotion dur="2.4s" repeatCount="indefinite" begin="0.6s"><mpath href="#ac2"/></animateMotion></circle>
+                  <circle r="3.2"><animateMotion dur="2.4s" repeatCount="indefinite" begin="1.2s"><mpath href="#ac3"/></animateMotion></circle>
+                  <circle r="3.2"><animateMotion dur="2.4s" repeatCount="indefinite" begin="1.8s"><mpath href="#ac4"/></animateMotion></circle>
+                </g>
+              </svg>
+            </div>
+            <div class="ap-role__body">
+              <span class="ap-role__n">A</span>
+              <h2>Ofer putere de calcul</h2>
+              <p>Acest PC preia sarcini de la coordonator și le calculează pe procesor și, dacă are, pe placa video.</p>
+              <ul class="ap-facts" id="connFacts"></ul>
+              <button class="n-btn n-btn--primary n-btn--lg" type="button" id="goConn">Conectează acest PC</button>
+            </div>
+          </article>
+          <article class="cb-node ap-role" id="roleCoord">
+            <div class="ap-role__art" aria-hidden="true">
+              <svg viewBox="0 0 400 190" preserveAspectRatio="xMidYMid meet" id="artCoord">
+                <defs><path id="ad1" d="M156,95 C230,95 240,46 300,46"/><path id="ad2" d="M156,95 C230,95 240,95 300,95"/><path id="ad3" d="M156,95 C230,95 240,144 300,144"/></defs>
+                <g fill="none" stroke="#54436a" stroke-width="1.5"><use href="#ad1"/><use href="#ad2"/><use href="#ad3"/></g>
+                <rect x="52" y="58" width="104" height="74" rx="10" fill="#2d2339" stroke="#f2b49b" stroke-opacity="0.55"/>
+                <text x="104" y="52" text-anchor="middle" font-size="11" fill="#f2b49b" font-family="Schibsted Grotesk Variable, sans-serif">acest PC</text>
+                <g fill="#3d3049"><rect x="66" y="74" width="76" height="6" rx="3"/><rect x="66" y="88" width="76" height="6" rx="3"/><rect x="66" y="102" width="76" height="6" rx="3"/></g>
+                <g><rect x="66" y="74" width="44" height="6" rx="3" fill="#f2b49b"/><rect x="66" y="88" width="30" height="6" rx="3" fill="#c4a7e7"/><rect x="66" y="102" width="56" height="6" rx="3" fill="#e8a0b4"/></g>
+                <circle cx="156" cy="95" r="5" fill="#1e1626" stroke="#f2b49b" stroke-width="2"/>
+                <g stroke-width="1.5"><circle cx="316" cy="46" r="16" fill="#261d31" stroke="#f2b49b"/><circle cx="316" cy="95" r="16" fill="#261d31" stroke="#c4a7e7"/><circle cx="316" cy="144" r="16" fill="#261d31" stroke="#e8a0b4"/></g>
+                <g><circle cx="316" cy="46" r="4" fill="#f2b49b"/><circle cx="316" cy="95" r="4" fill="#c4a7e7"/><circle cx="316" cy="144" r="4" fill="#e8a0b4"/></g>
+                <g font-size="10" fill="#9c8ba6" font-family="Schibsted Grotesk Variable, sans-serif"><text x="340" y="49">PC 1</text><text x="340" y="98">PC 2</text><text x="340" y="147">PC 3</text></g>
+                <circle r="3.2" fill="#f2b49b"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0s"><mpath href="#ad1"/></animateMotion></circle>
+                <circle r="3.2" fill="#c4a7e7"><animateMotion dur="2.2s" repeatCount="indefinite" begin="0.7s" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#ad2"/></animateMotion></circle>
+                <circle r="3.2" fill="#e8a0b4"><animateMotion dur="2.2s" repeatCount="indefinite" begin="1.4s"><mpath href="#ad3"/></animateMotion></circle>
+              </svg>
+            </div>
+            <div class="ap-role__body">
+              <span class="ap-role__n">B</span>
+              <h2>Folosesc puterea altor PC-uri</h2>
+              <p>Pornești coordonatorul aici, trimiți o lucrare și vezi cum o împart PC-urile conectate.</p>
+              <ul class="ap-facts">
+                <li><span>Celelalte PC-uri <b>îl găsesc singure</b> în aceeași rețea</span></li>
+                <li><span>Le dai un <b>cod de acces</b>; fără el nu se pot conecta</span></li>
+                <li><span>Animație Blender pe GPU, ray tracing sau fractal pe CPU</span></li>
+              </ul>
+              <button class="n-btn n-btn--lg" type="button" id="goCoord">Pornește coordonatorul</button>
+            </div>
+          </article>
+        </div>
+        <dl class="ap-pc" id="pcSpec"><span class="ap-pc__title">Acest PC</span><span class="n-meta">Se citește hardware-ul…</span></dl>
+      </section>
+
+      <!-- ============================================== coordinator -->
+      <section class="ap-view" id="v-coord" aria-labelledby="coordTitle" hidden>
+        <button class="n-btn n-btn--sm n-btn--ghost ap-back" type="button" data-go="home">Înapoi</button>
+        <div id="coordSetup" hidden>
+          <div class="ap-view">
+            <header class="ap-hero">
+              <p class="n-eyebrow">Rolul B · coordonator</p>
+              <h1 class="cb-h1" id="coordTitle">Pornește coordonatorul pe <em>acest PC</em>.</h1>
+              <p class="cb-lede">Aici trimiți lucrările și vezi cum le împart celelalte PC-uri. Primești un cod de acces pe care îl dai doar colegilor tăi.</p>
+            </header>
+            <form class="cb-node" id="coordForm" style="max-width: 640px" novalidate>
+              <div class="cb-node__head"><span class="cb-node__n">01</span><h2 class="cb-node__title">Coordonator</h2></div>
+              <div class="cb-node__body">
+                <div class="n-field">
+                  <label class="n-field__label" for="coordName">Numele afișat celorlalte PC-uri</label>
+                  <input class="n-input" id="coordName" maxlength="40" autocomplete="off">
+                </div>
+                <details class="ap-details">
+                  <summary>Avansat</summary>
+                  <div class="n-field">
+                    <label class="n-field__label" for="coordPort">Port</label>
+                    <input class="n-input" id="coordPort" type="number" min="1024" max="65000" value="3000" style="max-width: 160px">
+                    <span class="n-field__hint">Dacă e ocupat, aplicația încearcă următoarele 9.</span>
+                  </div>
+                </details>
+                <div class="n-notice"><span>Dacă Windows întreabă despre firewall, permite accesul în <strong>rețelele private</strong>. Fără asta, celelalte PC-uri nu ajung la coordonator.</span></div>
+                <div id="coordError"></div>
+                <div class="ap-cta"><button class="n-btn n-btn--primary n-btn--lg" type="submit" id="coordStart">Pornește coordonatorul</button></div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div id="coordRunning" hidden>
+          <div class="ap-view">
+            <header class="ap-hero">
+              <p class="n-eyebrow">Rolul B · coordonator pornit</p>
+              <h1 class="cb-h1">Coordonatorul rulează. <em>Invită PC-urile.</em></h1>
+              <p class="cb-lede">Pe fiecare PC care oferă putere: deschide Compute Bridge, alege „Ofer putere de calcul” și scrie codul de mai jos.</p>
+            </header>
+            <div class="ap-cards">
+              <section class="cb-node" aria-labelledby="codeTitle">
+                <div class="cb-node__head"><span class="cb-node__n">01</span><h2 class="cb-node__title" id="codeTitle">Codul de acces</h2>
+                  <span class="cb-node__aside"><button class="n-btn n-btn--sm n-btn--ghost" type="button" id="codeToggle">Ascunde</button><button class="n-btn n-btn--sm" type="button" id="codeCopy">Copiază</button></span></div>
+                <div class="cb-node__body">
+                  <p class="ap-code" id="code"></p>
+                  <p class="n-meta">Dă-l doar colegilor din această rețea. Dacă apare într-o captură de ecran, oprește și repornește coordonatorul ca să primești altul.</p>
+                </div>
+              </section>
+              <section class="cb-node" aria-labelledby="addrTitle">
+                <div class="cb-node__head"><span class="cb-node__n">02</span><h2 class="cb-node__title" id="addrTitle">Adresa în rețea</h2>
+                  <span class="cb-node__aside"><button class="n-btn n-btn--sm" type="button" id="addrCopy">Copiază</button></span></div>
+                <div class="cb-node__body">
+                  <p class="ap-addr" id="addr"></p>
+                  <p class="ap-addr-more" id="addrMore"></p>
+                  <p class="n-meta">PC-urile din aceeași rețea îl găsesc și singure. Adresa e pentru cazul în care nu apare în lista lor.</p>
+                </div>
+              </section>
+            </div>
+            <div class="ap-two">
+              <section class="cb-node" aria-labelledby="pcsTitle">
+                <div class="cb-node__head"><span class="cb-node__n">03</span><h2 class="cb-node__title" id="pcsTitle">PC-uri conectate</h2><span class="cb-node__aside n-meta" id="pcsCount"></span></div>
+                <div class="cb-node__body" id="coordPcs"></div>
+              </section>
+              <section class="cb-node" aria-labelledby="nextTitle">
+                <div class="cb-node__head"><span class="cb-node__n">04</span><h2 class="cb-node__title" id="nextTitle">Trimite o lucrare</h2></div>
+                <div class="cb-node__body">
+                  <p class="cb-spec">În panoul de lucru alegi lucrarea și vezi în timp real ce face fiecare PC: firele, coada, imaginea care se compune și jurnalul.</p>
+                  <p class="n-meta" id="coordJob"></p>
+                  <div class="ap-cta">
+                    <a class="n-btn n-btn--primary n-btn--lg" id="openPanel" href="#">Deschide panoul de lucru</a>
+                    <button class="n-btn n-btn--danger" type="button" id="coordStop">Oprește coordonatorul</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================ connector -->
+      <section class="ap-view" id="v-conn" aria-labelledby="connTitle" hidden>
+        <button class="n-btn n-btn--sm n-btn--ghost ap-back" type="button" data-go="home">Înapoi</button>
+        <div id="connSetup" hidden>
+          <div class="ap-view">
+            <header class="ap-hero">
+              <p class="n-eyebrow">Rolul A · conector</p>
+              <h1 class="cb-h1" id="connTitle">Oferă puterea <em>acestui PC</em>.</h1>
+              <p class="cb-lede">Trei pași. Poți opri partajarea oricând, iar sarcinile neterminate se întorc în coadă pentru celelalte PC-uri.</p>
+            </header>
+            <form id="connForm" class="ap-steps" novalidate>
+              <section class="cb-node ap-step" id="step1" aria-labelledby="s1Title">
+                <i class="sock sock--t" aria-hidden="true"></i><i class="sock sock--b" aria-hidden="true"></i>
+                <div class="cb-node__head"><span class="cb-node__n">01</span><h2 class="cb-node__title" id="s1Title">Alege coordonatorul</h2><span class="ap-check">Ales</span></div>
+                <div class="cb-node__body">
+                  <div class="ap-found" id="found" role="radiogroup" aria-label="Coordonatori găsiți în rețea"></div>
+                  <div class="ap-manual">
+                    <label class="n-field__label" for="manual">Sau scrie adresa lui</label>
+                    <input class="n-input n-num" id="manual" placeholder="192.168.1.10:3000" autocomplete="off" spellcheck="false" inputmode="url">
+                    <span class="n-field__hint">O vezi pe ecranul coordonatorului, la „Adresa în rețea”.</span>
+                  </div>
+                </div>
+              </section>
+              <section class="cb-node ap-step" id="step2" aria-labelledby="s2Title">
+                <i class="sock sock--t" aria-hidden="true"></i><i class="sock sock--b" aria-hidden="true"></i>
+                <div class="cb-node__head"><span class="cb-node__n">02</span><h2 class="cb-node__title" id="s2Title">Codul de acces</h2><span class="ap-check">Completat</span></div>
+                <div class="cb-node__body">
+                  <div class="n-field">
+                    <label class="n-sr-only" for="token">Codul de acces</label>
+                    <div class="ap-row">
+                      <input class="n-input n-num" id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Codul afișat pe coordonator">
+                      <button class="n-btn" type="button" id="tokenShow">Arată</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="cb-node ap-step" id="step3" aria-labelledby="s3Title">
+                <i class="sock sock--t" aria-hidden="true"></i><i class="sock sock--b" aria-hidden="true"></i>
+                <div class="cb-node__head"><span class="cb-node__n">03</span><h2 class="cb-node__title" id="s3Title">Ce oferă acest PC</h2><span class="ap-check">Gata</span></div>
+                <div class="cb-node__body">
+                  <div class="n-field">
+                    <label class="n-field__label" for="pcName">Numele acestui PC</label>
+                    <input class="n-input" id="pcName" maxlength="50" autocomplete="off">
+                  </div>
+                  <div class="ap-slots">
+                    <label class="n-field__label" for="slots">Procesor</label>
+                    <div class="ap-slots__value"><span><b id="slotsValue">4</b> <span class="n-meta" id="slotsOf"></span></span><span class="n-meta" id="slotsHint"></span></div>
+                    <input class="n-range" id="slots" type="range" min="1" max="12" value="4">
+                  </div>
+                  <div class="ap-gpu" id="gpuBox"></div>
+                  <details class="ap-details">
+                    <summary>Ipoteze pentru costul simulat</summary>
+                    <div class="ap-grid2">
+                      <div class="n-field"><label class="n-field__label" for="rate">Tarif, RON pe oră</label><input class="n-input" id="rate" type="number" min="0" step="0.5" value="2"></div>
+                      <div class="n-field"><label class="n-field__label" for="watts">Putere, W</label><input class="n-input" id="watts" type="number" min="0" step="10" value="120"></div>
+                      <p class="n-field__hint" style="grid-column: 1 / -1">Valori de demo. Coordonatorul le folosește doar ca să estimeze costul și energia, nu sunt măsurători.</p>
+                    </div>
+                  </details>
+                </div>
+              </section>
+              <div id="connError"></div>
+              <div class="ap-cta">
+                <button class="n-btn n-btn--primary n-btn--lg" type="submit" id="connStart">Conectează acest PC</button>
+                <span class="n-meta" id="connHint"></span>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div id="connLive" hidden>
+          <div class="ap-view">
+            <header class="ap-hero">
+              <p class="n-eyebrow" id="liveEyebrow">Rolul A · conector</p>
+              <h1 class="cb-h1" id="liveTitle"></h1>
+              <p class="cb-lede" id="liveLede"></p>
+            </header>
+            <div id="liveNotice"></div>
+            <div class="ap-live" id="live">
+              <svg id="liveWires" aria-hidden="true"></svg>
+              <section class="cb-node" aria-labelledby="liveCoordTitle">
+                <i class="sock sock--r" id="s-live-out" aria-hidden="true"></i>
+                <div class="cb-node__head"><span class="cb-node__n">01</span><h2 class="cb-node__title" id="liveCoordTitle">Coordonator</h2></div>
+                <div class="cb-node__body">
+                  <p class="ap-big" style="font-size: 1.75rem" id="liveCoordName"></p>
+                  <p class="cb-host" id="liveCoordAddr"></p>
+                </div>
+              </section>
+              <section class="cb-node" aria-labelledby="livePcTitle">
+                <div class="cb-node__head"><span class="cb-node__n">02</span><h2 class="cb-node__title" id="livePcTitle">Acest PC</h2><span class="cb-node__aside" id="livePcBadge"></span></div>
+                <div id="slotRows"></div>
+              </section>
+            </div>
+            <div class="ap-stats cb-node" id="liveStats"></div>
+            <div class="ap-two">
+              <section class="cb-node" aria-labelledby="logTitle">
+                <div class="cb-node__head"><span class="cb-node__n">03</span><h2 class="cb-node__title" id="logTitle">Jurnal</h2><span class="cb-node__aside n-meta">pe acest PC</span></div>
+                <ol class="cb-log" id="log"></ol>
+              </section>
+              <section class="cb-node" aria-labelledby="ctrlTitle">
+                <div class="cb-node__head"><span class="cb-node__n">04</span><h2 class="cb-node__title" id="ctrlTitle">Control</h2></div>
+                <div class="cb-node__body">
+                  <p class="cb-spec">Când oprești, coordonatorul te vede imediat offline. Sarcinile la care lucra acest PC revin în coadă și le iau celelalte.</p>
+                  <div class="ap-cta">
+                    <button class="n-btn n-btn--danger n-btn--lg" type="button" id="connStop">Oprește partajarea</button>
+                    <button class="n-btn" type="button" id="connEdit">Schimbă setările</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ap-closed" id="v-closed" hidden>
+        <div><b>Aplicația s-a închis.</b><p class="cb-lede">Poți închide această filă. Ca s-o folosești din nou, pornește Compute Bridge.</p></div>
+      </section>
+    </div>
+    <p class="n-sr-only" aria-live="polite" id="announce"></p>
+  </main>
+
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const KEY = document.querySelector('meta[name="cb-key"]').content;
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const local = {
+      get(k, fallback) { try { const v = localStorage.getItem(`cb:${k}`); return v == null ? fallback : JSON.parse(v); } catch { return fallback; } },
+      set(k, v) { try { localStorage.setItem(`cb:${k}`, JSON.stringify(v)); } catch {} }
+    };
+    const session = {
+      get(k) { try { return sessionStorage.getItem(`cb:${k}`) || ''; } catch { return ''; } },
+      set(k, v) { try { sessionStorage.setItem(`cb:${k}`, v); } catch {} }
+    };
+
+    function h(tag, attrs, ...kids) {
+      const el = document.createElement(tag);
+      for (const [key, value] of Object.entries(attrs || {})) {
+        if (value == null || value === false) continue;
+        if (key === 'class') el.className = value;
+        else if (key === 'style') for (const [p, v] of Object.entries(value)) el.style.setProperty(p, v);
+        else if (key.startsWith('on')) el.addEventListener(key.slice(2), value);
+        else el.setAttribute(key, value === true ? '' : value);
+      }
+      for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid);
+      return el;
+    }
+    function fill(el, ...kids) { el.replaceChildren(...kids.flat().filter(k => k != null && k !== false)); }
+    const nf = new Map();
+    function fmt(n, d = 0) {
+      if (!nf.has(d)) nf.set(d, new Intl.NumberFormat('ro-RO', { minimumFractionDigits: d, maximumFractionDigits: d }));
+      return nf.get(d).format(n);
+    }
+    function plural(n, one, many) {
+      if (n === 1) return `1 ${one}`;
+      const r = n % 100;
+      return `${fmt(n)} ${n !== 0 && (r === 0 || r >= 20) ? 'de ' : ''}${many}`;
+    }
+    function duration(ms) {
+      const s = Math.max(0, Math.round(ms / 1000));
+      if (s < 60) return `${s} s`;
+      const m = Math.floor(s / 60);
+      return m < 60 ? `${m} min ${String(s % 60).padStart(2, '0')} s` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
+    }
+    const shortMs = ms => ms < 1000 ? `${fmt(ms)} ms` : `${fmt(ms / 1000, 1)} s`;
+    const clock = () => new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    function announce(t) { $('announce').textContent = t; }
+    function setFill(r) { const min = +r.min, max = +r.max; r.style.setProperty('--fill', `${max > min ? ((+r.value - min) / (max - min)) * 100 : 0}%`); }
+    function notice(tone, title, text, extra) {
+      return h('div', { class: `n-notice${tone ? ` n-notice--${tone}` : ''}`, role: tone === 'coral' ? 'alert' : null },
+        h('div', null, h('span', null, title ? h('strong', null, `${title} `) : null, text), extra || null));
+    }
+    async function copy(text, button) {
+      try { await navigator.clipboard.writeText(text); }
+      catch {
+        const area = h('textarea', { style: { position: 'fixed', opacity: '0' } }, text);
+        document.body.append(area); area.select(); document.execCommand('copy'); area.remove();
+      }
+      const before = button.textContent;
+      button.textContent = 'Copiat';
+      setTimeout(() => { button.textContent = before; }, 1400);
+    }
+
+    async function api(path, body) {
+      let response;
+      try {
+        response = await fetch(path, {
+          method: body ? 'POST' : 'GET',
+          headers: { 'x-app-key': KEY, 'content-type': 'application/json' },
+          body: body ? JSON.stringify(body) : undefined
+        });
+      } catch {
+        throw new Error('Aplicația nu mai răspunde. Pornește din nou Compute Bridge.');
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      return data;
+    }
+
+    // ================================================================= state
+
+    let sys = null, st = null, view = null;
+    let selected = local.get('server', '');
+    let tickTimer = null;
+
+    function go(name) {
+      view = name;
+      for (const v of ['home', 'coord', 'conn', 'closed']) $(`v-${v}`).hidden = v !== name;
+      if (name === 'conn') renderConn();
+      if (name === 'coord') renderCoord();
+      if (name === 'home') renderHome();
+      scrollTo(0, 0);
+      const title = document.querySelector(`#v-${name} h1:not([hidden])`);
+      title?.setAttribute('tabindex', '-1');
+    }
+    document.addEventListener('click', e => {
+      const target = e.target.closest('[data-go]');
+      if (target) { e.preventDefault(); go(target.dataset.go); }
+    });
+    $('homeLink').addEventListener('click', e => { e.preventDefault(); go('home'); });
+
+    function updateChip() {
+      let tone = '', text = 'Pregătit';
+      if (st?.connector) {
+        const s = st.connector.state;
+        tone = s === 'connected' ? 'live' : s === 'reconnecting' || s === 'error' ? 'warn' : '';
+        text = s === 'connected' ? (st.connector.active.length ? 'Lucrează' : 'Conectat, așteaptă') : s === 'reconnecting' ? 'Se reconectează' : s === 'connecting' ? 'Se conectează' : 'Oprit';
+      } else if (st?.coordinator) { tone = 'live'; text = 'Coordonator pornit'; }
+      $('chip').dataset.tone = tone;
+      $('chipText').textContent = text;
+    }
+
+    async function refreshState() {
+      try {
+        st = await api('/local/state');
+        updateChip();
+        if (view === 'coord') renderCoord();
+        if (view === 'home') renderFound();
+        if (view === 'conn' && !st.connector && !$('connLive').hidden) renderConn();
+      } catch {}
+    }
+
+    // ================================================================== home
+
+    function renderHome() {
+      renderFound();
+      if (!sys) return;
+      const nvidia = sys.gpus.find(g => g.nvidia);
+      fill($('connFacts'),
+        h('li', null, h('span', null, 'Procesor: ', h('b', null, `${plural(sys.threads, 'fir', 'fire')} de lucru`), ', pe care le alegi tu')),
+        h('li', null, h('span', null, 'Placă video: ', h('b', null, nvidia ? nvidia.name : sys.gpus[0]?.name || 'nedetectată'),
+          sys.gpuRenderReason ? ` · ${sys.gpuRenderReason.charAt(0).toLowerCase()}${sys.gpuRenderReason.slice(1).replace(/\.$/, '')}` : ' · poate randa cadre Blender')),
+        h('li', null, h('span', null, 'Te poți opri oricând; sarcinile ', h('b', null, 'revin în coadă'))));
+      fill($('pcSpec'),
+        h('span', { class: 'ap-pc__title' }, 'Acest PC'),
+        spec('Nume', sys.hostname),
+        spec('Procesor', `${sys.cpu} · ${sys.threads} fire`),
+        spec('Memorie', `${sys.ramGb} GB`),
+        spec('Placă video', sys.gpus.length ? sys.gpus.map(g => `${g.name}${g.vramGb ? ` · ${g.vramGb} GB` : ''}`).join(', ') : 'nedetectată'),
+        spec('Blender', sys.blender ? `instalat${sys.blenderVersion ? `, ${sys.blenderVersion}` : ''}` : 'nu e instalat'));
+    }
+    function spec(label, value) { return h('div', null, h('dt', null, label), h('dd', null, value)); }
+
+    function renderFound() {
+      const list = (st?.found || []).filter(c => !c.self);
+      if (!list.length || st?.connector || st?.coordinator) { fill($('foundBanner')); return; }
+      const c = list[0];
+      fill($('foundBanner'), h('div', { class: 'ap-banner' },
+        h('span', { class: 'ap-pulse', 'aria-hidden': 'true' }),
+        h('p', null, 'Am găsit coordonatorul ', h('b', null, c.name), ` în rețea (${c.address}:${c.port})${list.length > 1 ? ` și încă ${list.length - 1}` : ''}. Vrei să-i oferi puterea acestui PC?`),
+        h('button', { class: 'n-btn n-btn--primary', type: 'button', onclick: () => { selected = `http://${c.address}:${c.port}`; go('conn'); } }, 'Conectează-te la el')));
+    }
+
+    $('goConn').addEventListener('click', () => go('conn'));
+    $('goCoord').addEventListener('click', () => go('coord'));
+    $('roleConn').addEventListener('click', e => { if (!e.target.closest('button')) go('conn'); });
+    $('roleCoord').addEventListener('click', e => { if (!e.target.closest('button')) go('coord'); });
+
+    // =========================================================== coordinator
+
+    let codeHidden = false;
+    const PC_COLORS = ['var(--pc-1)', 'var(--pc-2)', 'var(--pc-3)', 'var(--pc-4)', 'var(--pc-5)'];
+
+    function renderCoord() {
+      const c = st?.coordinator;
+      $('coordSetup').hidden = Boolean(c);
+      $('coordRunning').hidden = !c;
+      if (!c) {
+        if (!$('coordName').value && sys) $('coordName').value = sys.hostname;
+        return;
+      }
+      fill($('code'), (c.token.match(/.{1,4}/g) || []).map(part => h('span', null, part)));
+      $('code').classList.toggle('is-hidden', codeHidden);
+      $('code').setAttribute('aria-label', codeHidden ? 'Cod ascuns' : `Cod de acces ${c.token.split('').join(' ')}`);
+      $('codeToggle').textContent = codeHidden ? 'Arată' : 'Ascunde';
+      const [first, ...rest] = c.addresses;
+      $('addr').textContent = first ? `${first}:${c.port}` : `localhost:${c.port}`;
+      $('addrMore').textContent = rest.length ? `Alte adrese ale acestui PC: ${rest.map(a => `${a}:${c.port}`).join(' · ')}` : '';
+      $('openPanel').href = c.url;
+      const pcs = c.summary.providers;
+      const online = pcs.filter(p => p.online);
+      $('pcsCount').textContent = pcs.length ? `${online.length} online` : '';
+      fill($('coordPcs'), pcs.length
+        ? h('ul', { class: 'ap-pcs' }, pcs.map((p, i) => h('li', { style: { '--c': p.online ? PC_COLORS[i % PC_COLORS.length] : 'var(--n-surface-3)' } },
+            h('i', { 'aria-hidden': 'true' }), h('b', null, p.name),
+            h('span', null, p.online ? `${plural(p.slots, 'slot', 'sloturi')} CPU${p.gpuRender ? ' · Blender GPU' : ''} · ${fmt(p.completed)} terminate` : 'offline'))))
+        : h('div', { class: 'cb-empty' },
+            h('div', { class: 'ap-searching' }, h('span', { class: 'ap-radar', 'aria-hidden': 'true' }), h('span', null, 'Aștept primul PC. Pe el: deschide Compute Bridge, alege „Ofer putere de calcul”, apoi scrie codul.')),
+            h('ol', { class: 'ap-howto' },
+              h('li', null, h('span', null, h('b', null, 'Același Wi-Fi sau aceeași rețea'), ' pentru toate PC-urile.')),
+              h('li', null, h('span', null, 'Coordonatorul apare singur în lista lor. Dacă nu apare, dă-le adresa de mai sus.')),
+              h('li', null, h('span', null, 'Ei scriu codul de acces și apasă ', h('b', null, 'Conectează acest PC'), '.')))));
+      const job = c.summary.job;
+      $('coordJob').textContent = job ? `Lucrarea curentă: ${job.status === 'running' ? `${job.done} din ${job.total} gata` : job.status === 'done' ? 'finalizată' : job.status === 'error' ? 'oprită cu o eroare' : 'oprită'}.` : 'Nicio lucrare trimisă încă.';
+    }
+
+    $('coordForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('coordStart').disabled = true;
+      $('coordStart').textContent = 'Se pornește…';
+      fill($('coordError'));
+      try {
+        st = await api('/local/coordinator/start', { name: $('coordName').value, port: Number($('coordPort').value) || 3000 });
+        updateChip();
+        renderCoord();
+        announce('Coordonatorul a pornit.');
+      } catch (error) {
+        fill($('coordError'), notice('coral', 'Coordonatorul nu a pornit.', error.message));
+      } finally {
+        $('coordStart').disabled = false;
+        $('coordStart').textContent = 'Pornește coordonatorul';
+      }
+    });
+    $('coordStop').addEventListener('click', async () => {
+      st = await api('/local/coordinator/stop', {});
+      updateChip();
+      renderCoord();
+      announce('Coordonatorul s-a oprit.');
+    });
+    $('codeToggle').addEventListener('click', () => { codeHidden = !codeHidden; renderCoord(); });
+    $('codeCopy').addEventListener('click', e => st?.coordinator && copy(st.coordinator.token, e.currentTarget));
+    $('addrCopy').addEventListener('click', e => copy($('addr').textContent, e.currentTarget));
+
+    // ============================================================= connector
+
+    function serverKey(s) { return String(s || '').replace(/^https?:\/\//, ''); }
+
+    function renderConn() {
+      const c = st?.connector;
+      const live = c && c.state !== 'stopped' && c.state !== 'error';
+      $('connSetup').hidden = Boolean(live);
+      $('connLive').hidden = !live;
+      if (live) { buildLive(); return; }
+      renderSetup();
+    }
+
+    let setupBuilt = false;
+    function renderSetup() {
+      if (!setupBuilt && sys) {
+        setupBuilt = true;
+        $('pcName').value = local.get('name', sys.hostname);
+        const max = Math.max(1, Math.min(12, sys.threads));
+        $('slots').max = max;
+        $('slots').value = Math.min(max, local.get('slots', Math.max(1, Math.min(max, sys.threads - 2))));
+        $('rate').value = local.get('rate', 2);
+        $('watts').value = local.get('watts', 120);
+        $('token').value = session.get('token');
+        buildGpuBox();
+        if (selected && !st?.found.some(f => serverKey(`${f.address}:${f.port}`) === serverKey(selected))) $('manual').value = serverKey(selected);
+      }
+      renderFoundList();
+      updateSteps();
+    }
+
+    function renderFoundList() {
+      const list = (st?.found || []).filter(f => !f.self);
+      const box = $('found');
+      if (!list.length) {
+        if (!box.querySelector('.ap-searching')) {
+          fill(box, h('div', { class: 'ap-searching' }, h('span', { class: 'ap-radar', 'aria-hidden': 'true' }),
+            h('span', null, 'Caut coordonatori în rețea… Dacă nu apare niciunul în câteva secunde, scrie adresa mai jos.')));
+        }
+        return;
+      }
+      const current = serverKey(selected);
+      fill(box, list.map(f => {
+        const key = `${f.address}:${f.port}`;
+        return h('label', { class: 'ap-option' },
+          h('input', { type: 'radio', name: 'coord', value: key, checked: current === key, onchange: () => { selected = `http://${key}`; $('manual').value = ''; updateSteps(); } }),
+          h('span', { class: 'ap-option__radio', 'aria-hidden': 'true' }),
+          h('span', { class: 'ap-option__main' }, h('b', null, f.name), h('span', null, key)),
+          h('span', { class: 'ap-option__aside' }, h('i', { 'aria-hidden': 'true' }), 'în rețea'));
+      }));
+      if (!current && list.length === 1 && !$('manual').value) { selected = `http://${list[0].address}:${list[0].port}`; box.querySelector('input').checked = true; updateSteps(); }
+    }
+
+    function buildGpuBox() {
+      const nvidia = sys.gpus.filter(g => g.nvidia);
+      const can = !sys.gpuRenderReason;
+      const wanted = can && local.get('gpuRender', true);
+      const gpus = sys.gpus.length ? sys.gpus : [{ name: 'Nedetectată', vramGb: 0 }];
+      const preferred = nvidia[0] || gpus[0];
+      fill($('gpuBox'),
+        h('label', { class: 'n-toggle', style: { 'justify-content': 'space-between', width: '100%' }, title: sys.gpuRenderReason || null },
+          h('span', { style: { display: 'grid', gap: '2px' } }, h('span', { style: { color: 'var(--n-text)', 'font-weight': '550' } }, 'Randează cadre Blender pe placa video'),
+            h('span', { class: 'n-field__hint' }, can ? `Blender ${sys.blenderVersion || ''} găsit · placă NVIDIA` : sys.gpuRenderReason)),
+          h('input', { type: 'checkbox', id: 'gpuRender', checked: wanted, disabled: !can }), h('span', { class: 'n-switch', 'aria-hidden': 'true' })),
+        h('div', { class: 'ap-grid2' },
+          h('div', { class: 'n-field' }, h('label', { class: 'n-field__label', for: 'gpuName' }, 'Placa video'),
+            h('select', { class: 'n-input', id: 'gpuName' }, gpus.map(g => h('option', { value: g.name, selected: g === preferred }, g.name)))),
+          h('div', { class: 'n-field' }, h('label', { class: 'n-field__label', for: 'vram' }, 'Memorie video, GB'),
+            h('input', { class: 'n-input', id: 'vram', type: 'number', min: 0, max: 96, value: local.get('vram', preferred.vramGb || 0) }),
+            preferred.approximate ? h('span', { class: 'n-field__hint' }, 'Windows raportează cel mult 4 GB aici; corectează dacă e mai mult.') : null)));
+      $('gpuName').addEventListener('change', () => {
+        const g = sys.gpus.find(x => x.name === $('gpuName').value);
+        if (g?.vramGb) $('vram').value = g.vramGb;
+      });
+    }
+
+    function updateSteps() {
+      const server = selected || $('manual').value.trim();
+      $('step1').classList.toggle('is-done', Boolean(server));
+      $('step2').classList.toggle('is-done', $('token').value.replace(/\s+/g, '').length >= 6);
+      $('step3').classList.toggle('is-done', Boolean($('pcName').value.trim()));
+      const v = Number($('slots').value), max = Number($('slots').max);
+      $('slotsValue').textContent = v;
+      $('slotsOf').textContent = `din ${plural(max, 'fir', 'fire')}`;
+      $('slotsHint').textContent = v >= max ? 'tot procesorul: PC-ul va fi lent pentru altceva' : v >= max - 1 ? 'aproape tot procesorul' : 'restul rămâne pentru tine';
+      setFill($('slots'));
+    }
+    $('manual').addEventListener('input', () => {
+      if ($('manual').value.trim()) { selected = ''; for (const r of document.querySelectorAll('input[name="coord"]')) r.checked = false; }
+      updateSteps();
+    });
+    for (const id of ['token', 'pcName', 'slots']) $(id).addEventListener('input', updateSteps);
+    $('tokenShow').addEventListener('click', () => {
+      const show = $('token').type === 'password';
+      $('token').type = show ? 'text' : 'password';
+      $('tokenShow').textContent = show ? 'Ascunde' : 'Arată';
+    });
+
+    $('connForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const server = $('manual').value.trim() || selected;
+      const token = $('token').value.replace(/\s+/g, '');
+      fill($('connError'));
+      if (!server) { fill($('connError'), notice('amber', 'Alege un coordonator.', 'Selectează-l din listă sau scrie adresa lui.')); return; }
+      if (!token) { fill($('connError'), notice('amber', 'Lipsește codul de acces.', 'Îl vezi pe ecranul coordonatorului.')); $('token').focus(); return; }
+      const body = {
+        server, token, name: $('pcName').value.trim(), slots: Number($('slots').value),
+        gpuRender: Boolean($('gpuRender')?.checked), gpu: $('gpuName')?.value || '', vramGb: Number($('vram')?.value) || 0,
+        rateRon: Number($('rate').value) || 0, watts: Number($('watts').value) || 0
+      };
+      local.set('server', server); local.set('name', body.name); local.set('slots', body.slots);
+      local.set('gpuRender', body.gpuRender); local.set('vram', body.vramGb); local.set('rate', body.rateRon); local.set('watts', body.watts);
+      session.set('token', token);
+      $('connStart').disabled = true;
+      $('connStart').textContent = 'Se conectează…';
+      $('connHint').textContent = '';
+      try {
+        st = await api('/local/connector/start', body);
+        clearLog();
+        updateChip();
+        renderConn();
+        announce('Acest PC s-a conectat la coordonator.');
+      } catch (error) {
+        const network = /Nu pot ajunge/.test(error.message);
+        fill($('connError'), notice('coral', 'Nu m-am putut conecta.', error.message, network ? h('ol', { class: 'ap-checklist' },
+          h('li', null, 'Pe coordonator, Compute Bridge e deschis și coordonatorul e pornit.'),
+          h('li', null, 'Ambele PC-uri sunt în aceeași rețea (același Wi-Fi sau router).'),
+          h('li', null, 'Pe coordonator, firewall-ul permite aplicația în rețelele private (portul 3000).')) : null));
+      } finally {
+        $('connStart').disabled = false;
+        $('connStart').textContent = 'Conectează acest PC';
+      }
+    });
+
+    // --------------------------------------------------------- connector live
+
+    const NS = 'http://www.w3.org/2000/svg';
+    let liveBuilt = false;
+    const slotLast = new Map();
+
+    function coordName(server) {
+      const key = serverKey(server);
+      return st?.found.find(f => `${f.address}:${f.port}` === key)?.name || key.split(':')[0];
+    }
+
+    function buildLive() {
+      const c = st.connector;
+      const slots = [...Array.from({ length: c.slots }, (_, i) => String(i + 1)), ...(c.gpuRender ? ['gpu'] : [])];
+      if (!liveBuilt || $('slotRows').childElementCount !== slots.length) {
+        liveBuilt = true;
+        fill($('slotRows'), slots.map(s => h('div', { class: 'ap-slot', id: `slot-${s}` },
+          h('i', { class: 'sock', id: `s-slot-${s}`, 'aria-hidden': 'true' }),
+          h('span', { class: 'ap-slot__name' }, s === 'gpu' ? 'GPU' : `Slot ${s}`),
+          h('span', { class: 'ap-slot__what' }, 'liber'),
+          h('span', { class: 'ap-slot__time' }))));
+        drawLiveWires();
+      }
+      updateLive();
+    }
+
+    function taskLabel(t) {
+      if (t.kind === 'gpu') return `cadrul ${t.frame + 1} din ${t.frames}`;
+      return `${t.mode === 'raytrace' ? 'ray tracing' : 'fractal'} · rândurile ${t.y}–${t.y + t.rows - 1}`;
+    }
+
+    function updateLive() {
+      const c = st?.connector;
+      if (!c) return;
+      const name = coordName(c.server);
+      const busy = c.active.length;
+      $('liveTitle').replaceChildren(...(c.state === 'reconnecting'
+        ? ['Legătura cu ', h('em', null, name), ' s-a întrerupt.']
+        : busy ? ['Acest PC lucrează pentru ', h('em', null, name), '.'] : ['Conectat la ', h('em', null, name), '. Aștept o lucrare.']));
+      $('liveLede').textContent = busy
+        ? `${plural(busy, 'slot lucrează', 'sloturi lucrează')} acum. Fiecare ia singur următoarea sarcină din coadă când o termină pe cea curentă.`
+        : 'Când coordonatorul pornește o lucrare, sarcinile apar aici, pe fiecare slot.';
+      fill($('liveNotice'), c.state === 'reconnecting' ? notice('amber', 'Se reconectează.', c.message || 'Încerc din nou la câteva secunde.') : null);
+      $('liveCoordName').textContent = name;
+      $('liveCoordAddr').textContent = serverKey(c.server);
+      fill($('livePcBadge'), h('span', { class: `n-badge ${c.state === 'connected' ? 'n-badge--lime' : 'n-badge--amber'}` },
+        h('span', { class: `n-dot${c.state === 'connected' && busy ? ' n-dot--live' : ''}`, 'aria-hidden': 'true' }),
+        c.state === 'connected' ? (busy ? 'Lucrează' : 'Conectat') : 'Se reconectează'));
+      $('livePcTitle').textContent = c.name;
+      const activeBySlot = new Map(c.active.map(t => [String(t.slot), t]));
+      for (const row of $('slotRows').children) {
+        const slot = row.id.slice(5);
+        const t = activeBySlot.get(slot);
+        row.classList.toggle('is-busy', Boolean(t));
+        fill(row.querySelector('.ap-slot__what'), t ? [h('span', { class: 'ap-spinner', 'aria-hidden': 'true' }), taskLabel(t)] : 'liber');
+        row.querySelector('.ap-slot__time').textContent = t ? duration(Date.now() - t.since) : slotLast.has(slot) ? `ultima ${shortMs(slotLast.get(slot))}` : '';
+        $(`s-slot-${slot}`)?.classList.toggle('is-on', Boolean(t));
+      }
+      $('s-live-out').classList.toggle('is-on', busy > 0);
+      const s = c.stats;
+      fill($('liveStats'),
+        stat('Sarcini terminate', fmt(s.done), true),
+        stat('Timp de calcul', duration(s.computeMs), false, 'suma pe toate sloturile'),
+        stat('Medie pe sarcină', s.done ? shortMs(s.computeMs / s.done) : '–'),
+        stat('Conectat de', s.startedAt ? duration(Date.now() - s.startedAt) : '–'));
+      drawLiveWires();
+    }
+    function stat(label, value, big, hint) {
+      return h('div', { class: 'n-stat' }, h('span', { class: 'n-stat__label' }, label), h('span', { class: big ? 'ap-big' : 'n-stat__value' }, value), hint ? h('span', { class: 'n-stat__hint' }, hint) : null);
+    }
+
+    const wirePaths = new Map();
+    function drawLiveWires() {
+      const svg = $('liveWires');
+      const box = $('live').getBoundingClientRect();
+      const out = $('s-live-out');
+      if (!out || !out.offsetParent || $('connLive').hidden) return;
+      const p = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2 - box.left, y: r.top + r.height / 2 - box.top }; };
+      const a = p(out);
+      for (const row of $('slotRows').children) {
+        const slot = row.id.slice(5);
+        const sock = $(`s-slot-${slot}`);
+        if (!sock?.offsetParent) continue;
+        const z = p(sock), dx = Math.max(40, (z.x - a.x) * 0.55);
+        const d = `M${a.x},${a.y} C${a.x + dx},${a.y} ${z.x - dx},${z.y} ${z.x},${z.y}`;
+        let w = wirePaths.get(slot);
+        if (!w || !w.base.isConnected) {
+          const base = document.createElementNS(NS, 'path'), flow = document.createElementNS(NS, 'path');
+          base.id = `lw-${slot}`;
+          svg.append(base, flow);
+          w = { base, flow };
+          wirePaths.set(slot, w);
+        }
+        const on = row.classList.contains('is-busy');
+        w.base.setAttribute('d', d); w.flow.setAttribute('d', d);
+        w.base.setAttribute('class', `w${on ? ' is-on' : ''}`);
+        w.flow.setAttribute('class', `wf${on && !reducedMotion ? ' is-on' : ''}`);
+      }
+    }
+    function packet(slot, reverse) {
+      if (reducedMotion || document.hidden) return;
+      const w = wirePaths.get(String(slot));
+      if (!w) return;
+      const dur = 0.75;
+      const dot = document.createElementNS(NS, 'circle');
+      dot.setAttribute('r', '3.4'); dot.setAttribute('class', 'pk'); dot.style.fill = 'var(--n-accent)'; dot.style.color = 'var(--n-accent)';
+      const m = document.createElementNS(NS, 'animateMotion');
+      for (const [k, v] of Object.entries({ dur: `${dur}s`, begin: 'indefinite', fill: 'freeze', calcMode: 'spline', keyTimes: '0;1', keySplines: '0.45 0 0.2 1', keyPoints: reverse ? '1;0' : '0;1' })) m.setAttribute(k, v);
+      const mp = document.createElementNS(NS, 'mpath');
+      mp.setAttribute('href', `#${w.base.id}`);
+      m.append(mp); dot.append(m); $('liveWires').append(dot);
+      m.beginElement();
+      setTimeout(() => dot.remove(), dur * 1000 + 60);
+    }
+
+    // log, in the spirit of a Claude Code transcript
+    function clearLog() { fill($('log')); }
+    function log(text, sub, tone) {
+      const el = $('log');
+      const stick = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+      el.append(h('li', { class: tone ? `is-${tone}` : null },
+        h('span', { class: 'cb-log__dot', style: { '--c': tone === 'error' ? 'var(--n-danger)' : tone === 'warn' ? 'var(--n-warn)' : 'var(--n-accent)' }, 'aria-hidden': 'true' }),
+        h('div', null, h('p', { class: 'cb-log__text' }, text), sub ? h('p', { class: 'cb-log__sub' }, sub) : null),
+        h('time', null, clock())));
+      while (el.children.length > 150) el.firstChild.remove();
+      if (stick) el.scrollTop = el.scrollHeight;
+    }
+    const b = t => h('b', null, t);
+
+    $('connStop').addEventListener('click', async () => {
+      $('connStop').disabled = true;
+      try { st = await api('/local/connector/stop', {}); } finally { $('connStop').disabled = false; }
+      liveBuilt = false;
+      updateChip();
+      renderConn();
+      announce('Partajarea s-a oprit.');
+    });
+    $('connEdit').addEventListener('click', async () => {
+      st = await api('/local/connector/stop', {});
+      liveBuilt = false;
+      updateChip();
+      renderConn();
+    });
+
+    // ================================================================ events
+
+    let source = null;
+    function listen() {
+      source = new EventSource(`/local/events?key=${KEY}`);
+      source.onmessage = e => {
+        const ev = JSON.parse(e.data);
+        if (ev.type === 'found') { if (st) st.found = ev.coordinators; if (view === 'home') renderFound(); if (view === 'conn' && $('connLive').hidden) renderFoundList(); return; }
+        if (ev.type === 'coordinator') { refreshState(); return; }
+        if (!st?.connector && ev.type !== 'status') return;
+        if (ev.type === 'task') {
+          const c = st.connector;
+          if (!c) return;
+          c.stats = ev.stats;
+          const slot = String(ev.slot);
+          c.active = c.active.filter(t => String(t.slot) !== slot);
+          const fresh = Date.now() - ev.at < 2000; // events replayed after a reload don't animate
+          if (ev.phase === 'start') { c.active.push({ ...ev, since: ev.at }); if (fresh) packet(slot, false); }
+          if (ev.phase === 'done') {
+            slotLast.set(slot, ev.durationMs);
+            if (fresh) packet(slot, true);
+            log([b(ev.kind === 'gpu' ? 'GPU' : `Slot ${slot}`), ` a terminat ${ev.kind === 'gpu' ? `cadrul ${ev.frame + 1}` : `rândurile ${ev.y}–${ev.y + ev.rows - 1}`}`],
+              `${shortMs(ev.durationMs)}${ev.backend ? ` · ${ev.backend}` : ''}`);
+          }
+          if (ev.phase === 'drop' && !/nu mai este activă|expirat/i.test(ev.message || '')) log([b(ev.kind === 'gpu' ? 'GPU' : `Slot ${slot}`), ' nu a terminat sarcina'], ev.message, 'warn');
+          if (view === 'conn' && !$('connLive').hidden) updateLive();
+          updateChip();
+          return;
+        }
+        if (ev.type === 'status') {
+          if (st?.connector) { st.connector.state = ev.state; st.connector.message = ev.message; }
+          if (ev.state === 'connected') log([b('Conectat'), ' la coordonator'], st?.connector ? serverKey(st.connector.server) : null);
+          if (ev.state === 'reconnecting') log([b('Legătura s-a întrerupt')], ev.message, 'warn');
+          if (ev.state === 'stopped') { log([b('Partajare oprită')]); refreshState(); }
+          updateChip();
+          if (view === 'conn') (st?.connector && !$('connLive').hidden) ? updateLive() : renderConn();
+          return;
+        }
+        if (ev.type === 'log' && ev.level === 'error') log([b('Eroare')], ev.text, 'error');
+      };
+      source.onerror = () => { $('chipText').textContent = 'Aplicația nu răspunde'; $('chip').dataset.tone = 'warn'; };
+      source.onopen = () => updateChip();
+    }
+
+    $('quit').addEventListener('click', async () => {
+      if (st?.connector || st?.coordinator) {
+        if (!confirm('Închizi aplicația? Partajarea și coordonatorul se opresc.')) return;
+      }
+      try { await api('/local/quit', {}); } catch {}
+      source?.close();
+      go('closed');
+      $('chip').hidden = true;
+      $('quit').hidden = true;
+    });
+
+    addEventListener('resize', () => requestAnimationFrame(drawLiveWires));
+    if (reducedMotion) for (const svg of document.querySelectorAll('.ap-role__art svg')) svg.pauseAnimations();
+
+    // ================================================================= start
+
+    (async () => {
+      try { st = await api('/local/state'); } catch {}
+      updateChip();
+      go(st?.connector ? 'conn' : st?.coordinator ? 'coord' : 'home');
+      listen();
+      api('/local/system').then(info => {
+        sys = info;
+        if (view === 'home') renderHome();
+        if (view === 'conn') renderConn();
+        if (view === 'coord') renderCoord();
+      });
+      setInterval(refreshState, 2500);
+      setInterval(() => { if (view === 'conn' && !$('connLive').hidden) updateLive(); }, 1000);
+    })();
+  </script>
+</body>
+</html>
