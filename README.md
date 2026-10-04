@@ -66,7 +66,7 @@ Coordonatorul ascultă pe portul TCP 3000. Dacă portul e ocupat, aplicația în
 
 **Oprirea:** *Oprește partajarea* face ca PC-ul să apară imediat offline pe coordonator, iar sarcinile la care lucra revin în coadă pentru celelalte PC-uri. Dacă un PC dispare fără să se oprească din aplicație, sarcinile lui revin în coadă după 2 minute (CPU) sau 5 minute (GPU). Un PC apare offline după 15 secunde fără contact.
 
-**Dacă repornește coordonatorul,** conectorul se reînregistrează singur.
+**Dacă repornește coordonatorul:** din aplicație primește un cod nou, deci fiecare PC trebuie reconectat cu noul cod. Doar un coordonator repornit cu același cod (`node server.js` cu `BRIDGE_TOKEN` fixat) e regăsit automat de conectori.
 
 ## Lucrările
 
@@ -91,7 +91,7 @@ Sunt doar trei lucrări incluse, iar coordonatorul acceptă o singură lucrare a
 | Lucrare | Timp total | Benzi calculate |
 | --- | --- | --- |
 | Ray tracing 1600 × 900, 320 de mostre (57 de benzi) | 28,8 s | PC-2: 39, PC-1: 18 |
-| Fractal 2400 × 1600, 5000 de iterații | 2,5 s | |
+| Fractal 2400 × 1600, 100 de iterații (50 de benzi) | 1,3 s | PC-2: 31, PC-1: 19 |
 
 ## Demo pentru juriu
 
