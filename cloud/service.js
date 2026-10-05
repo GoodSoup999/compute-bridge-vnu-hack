@@ -155,7 +155,7 @@ class Hub {
         // A total loss of agents may be the hub's connection. Do not charge an ambiguous outage.
         if (!d || this.clock() - d.lastSeen > 60000 || t.expires < this.clock()) this.release(j, t, !!d && otherOnline && this.clock() - d.lastSeen > 60000);
       }
-      if (j.tasks.some(t => t.status === 'pending' && t.attempts >= 5)) this.finish(j, 'error', 'Prea multe încercări eșuate; bugetul rămas a fost restituit');
+      if (j.tasks.some(t => t.status === 'pending' && t.attempts >= 5)) this.finish(j, 'error', 'Prea multe încercări eșuate; bugetul rămas a fost restituit. ' + (j.error || 'Furnizorul nu a terminat sarcina.'));
     }
   }
   heartbeat(did) { return this.write(s => { const d = s.devices.find(d => d.id === did); d.lastSeen = this.clock(); this.maintain(); return { paused: d.paused, until: d.until, active: s.jobs.flatMap(j => j.tasks).filter(t => t.status === 'assigned' && t.deviceId === did).map(t => t.lease) }; }); }
@@ -204,7 +204,7 @@ class Hub {
       return { ok: true };
     });
   }
-  failure(did, b) { return this.write(() => { const { j, t } = this.lease(did, b); if (t.status === 'done') return { ok: true }; this.s.devices.find(d => d.id === did).failed++; this.release(j, t, false); j.error = label(b.error); return { ok: true }; }); }
+  failure(did, b) { return this.write(() => { const { j, t } = this.lease(did, b); if (t.status === 'done') return { ok: true }; this.s.devices.find(d => d.id === did).failed++; this.release(j, t, false); j.error = String(b.error || 'Execuție eșuată').trim().slice(-1500); return { ok: true }; }); }
   stopDevice(did, force) { return this.write(s => { const d = s.devices.find(d => d.id === did); d.paused = true; if (force) for (const j of s.jobs) for (const t of j.tasks) if (t.status === 'assigned' && t.deviceId === did) this.release(j, t, t.bond > 0); return { ok: true }; }); }
   revokeDevice(uid, did) { const d = this.s.devices.find(d => d.id === did && d.ownerId === uid) || fail('Dispozitiv inaccesibil', 403); return this.stopDevice(d.id, true); }
   cancel(uid, jid) { return this.write(s => { const j = s.jobs.find(j => j.id === jid && j.ownerId === uid) || fail('Lucrare inaccesibilă', 404); if (j.status === 'running') this.finish(j, 'cancelled'); return { ok: true }; }); }
