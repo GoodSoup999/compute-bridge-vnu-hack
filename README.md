@@ -10,6 +10,11 @@ Creat pentru **VNU Hack · Be The Middle Man**. Intermediem resursele, lucrăril
 
 > Beta funcțională. Calculul și transferul creditelor sunt reale în aplicație. Cumpărarea și retragerea în bani sunt **simulări marcate DEMO**, fără încasări sau transferuri bancare.
 
+> [!IMPORTANT]
+> **Setup-ul actual este dificil și cere mai mulți pași și descărcări, mai ales pe PC-urile furnizoare.** Știm că aceasta este o barieră de utilizare. Prototipul a fost construit în cele **24 de ore disponibile la hackathon**, cu prioritate pe funcționarea fluxului complet: ofertă → calcul → rezultat → credite. Instalarea actuală nu reprezintă experiența finală pe care o urmărim.
+>
+> **Îmbunătățire propusă, încă neimplementată:** un asistent de instalare integrat, pornit din „Pregătește PC-ul meu”, care detectează hardware-ul și componentele existente, explică ce este necesar pentru lucrările alese, instalează cu acordul utilizatorului doar componentele lipsă din surse oficiale și pregătește mediul de calcul. Ar afișa progresul, ar relua pregătirea după un eventual restart și ar rula o lucrare de verificare înainte de ofertare. O adresă permanentă a serverului ar elimina și schimbarea manuală a linkului. Obiectivul este **o singură instalare ghidată**, fără comenzi copiate în terminal; utilizatorul care doar trimite lucrări remote ar păstra instalarea simplă a aplicației.
+
 ## Ce face aplicația
 
 | Lucrare | Intrare → rezultat |
