@@ -7,6 +7,7 @@ on:
       - 'lib/**'
       - 'cloud/**'
       - 'test/workloads.js'
+      - 'test/workload-desktop.js'
       - 'scripts/**'
       - 'examples/**'
       - 'public/workload*.js'
@@ -23,6 +24,7 @@ jobs:
         with:
           node-version: '24'
       - run: npm run runtime:prepare
+      - run: npm run test:workload-desktop
       - run: npm run test:workloads
       - uses: actions/upload-artifact@v4
         with:

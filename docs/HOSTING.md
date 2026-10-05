@@ -33,12 +33,12 @@ npm run desktop:build
 
 Configurația se include în arhivă. Toate PC-urile care folosesc acel pachet contactează același server. Dacă folosești un tunel temporar și adresa se schimbă, reconstruiește și redistribuie pachetul sau actualizează `resources/app/desktop/config.json` din pachetul distribuit. Pentru o adresă permanentă, aplicațiile continuă să se reconecteze fără această schimbare.
 
-## Actualizare de la versiunea 0.4
+## Actualizare la versiunea 0.7
 
 1. Oprește ofertele și așteaptă finalizarea lucrărilor active.
 2. Oprește serverul și tunelul cu Ctrl+C.
 3. Din proiectul de pe gazdă rulează `git pull`, apoi `npm run hub:public`.
-4. Configurează pachetul desktop pentru noua adresă a tunelului. Toți participanții folosesc aplicația 0.5.
+4. Configurează pachetul desktop pentru noua adresă a tunelului. Toți participanții folosesc aplicația 0.7. Furnizorii care acceptă video/cod au nevoie de Docker și mediul Compute Bridge: [instalare și verificări](TEST-WORKLOADS.md).
 
 Nu șterge folderul `data`. Serverul păstrează conturile, soldurile și rezultatele. Configurațiile grupurilor vechi sunt eliminate; lucrările active ale acelor grupuri sunt anulate cu restituirea bugetului și fără penalizări. Bonusul de început se acordă o singură dată conturilor care nu l-au primit deja.
 

@@ -25,6 +25,7 @@
     "runtime:prepare": "node scripts/prepare-runtime.js",
     "task:pack": "node scripts/pack-task.js",
     "test:workloads": "node test/workloads.js",
+    "test:workload-desktop": "node test/workload-desktop.js",
     "examples:prepare": "node scripts/make-examples.js"
   },
   "engines": {

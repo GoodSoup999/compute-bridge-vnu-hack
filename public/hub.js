@@ -18,13 +18,14 @@ const empty = text => `<div class="empty">${esc(text)}</div>`;
 function conditional() {
   const mode = $('jobMode').value;
   const workload = !!ComputeTypes[mode];
-  if ($('taskVideoOptions')) { $('taskVideoOptions').hidden=mode!=='video'; $('taskCompileOptions').hidden=mode!=='compile'; }
+  if ($('taskVideoOptions')) { $('taskVideoOptions').hidden=mode!=='video'; $('taskCompileOptions').hidden=mode!=='compile'; for (const input of $('taskVideoOptions').querySelectorAll('input')) input.disabled=mode!=='video'; }
   $('bundleSettings').hidden = !workload; $('renderDetails').hidden = workload;
   for (const input of $('renderDetails').querySelectorAll('input')) input.disabled = workload;
   const execution = $('jobForm').elements.execution;
   execution.querySelector('[value=hybrid]').disabled = workload;
   if (workload) execution.value = 'remote';
   $('fractalSettings').hidden = mode !== 'fractal'; $('renderSettings').hidden = mode === 'fractal'; $('gpuSettings').hidden = mode !== 'blender';
+  for (const input of $('gpuSettings').querySelectorAll('input')) input.disabled=mode!=='blender';
   const project = mode === 'blender' && !!$('project').value && $('project').value !== 'demo';
   $('startFrameLabel').hidden = !project;
   $('jobForm').elements.frames.min = project ? 1 : 2;
@@ -37,7 +38,7 @@ function tab(name) {
 }
 function deviceCard(d, own = false) {
   const remaining = Math.max(0, Math.ceil((d.until - (current?.serverTime || Date.now())) / 60000));
-  return `<article class="card"><div class="jobhead"><strong>${esc(d.name)}</strong><span class="badge">${d.online ? (d.busy ? 'Lucrează':'Disponibil'):'Oprit'}</span></div><p class="sub">${esc(d.owner)} · ${d.slots} fire CPU · ${d.ramGb} GB RAM<br>${esc(d.gpuRender ? d.gpu : 'GPU neofertat')} ${d.gpuRender ? '· '+d.vramGb+' GB VRAM':''}</p><p class="sub">${money(d.price)} credite / unitate · ${d.completed} sarcini terminate<br>${d.online ? 'Disponibil încă '+remaining+' minute':'Oferta nu este activă'}</p>${own ? `<p class="positive">${money(d.earned)} credite câștigate prin calcul</p>`:`<button class="primary" data-use="${esc(d.id)}">Folosește acest PC</button>`}</article>`;
+  return `<article class="card"><div class="jobhead"><strong>${esc(d.name)}</strong><span class="badge">${d.online ? (d.busy ? 'Lucrează':'Disponibil'):'Oprit'}</span></div><p class="sub">${esc(d.owner)} · ${d.slots} fire CPU · ${d.ramGb} GB RAM<br>${esc(d.gpuRender ? d.gpu : 'GPU neofertat')} ${d.gpuRender ? '· '+d.vramGb+' GB VRAM':''}<br>${d.workloads?'Acceptă video, Python, AI CPU, compilare și simulări':'Pachete video/cod neacceptate'}</p><p class="sub">${money(d.price)} credite / unitate · ${d.completed} sarcini terminate<br>${d.online ? 'Disponibil încă '+remaining+' minute':'Oferta nu este activă'}</p>${own ? `<p class="positive">${money(d.earned)} credite câștigate prin calcul</p>`:`<button class="primary" data-use="${esc(d.id)}">Folosește acest PC</button>`}</article>`;
 }
 function providers(devices) {
   const el = $('provider'); const selected = el.value; const oldName = el.selectedOptions[0]?.textContent;

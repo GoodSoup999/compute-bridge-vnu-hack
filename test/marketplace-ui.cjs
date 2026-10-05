@@ -44,6 +44,7 @@ async function main() {
   assert.equal(await run("document.getElementById('bundleSettings').hidden"),false);
   assert.equal(await run("document.getElementById('renderDetails').hidden"),true);
   assert.equal(await run("document.querySelector('[name=width]').disabled"),true);
+  assert.equal(await run("document.querySelector('[name=frames]').disabled"),true);
   assert.equal(await run("document.querySelector('[name=execution] option[value=hybrid]').disabled"),true);
   assert.match(await run("document.getElementById('bundle').textContent"),/My script.cbtask/);
   assert.doesNotMatch(await run("document.getElementById('bundle').textContent"),/My animation/);

@@ -106,6 +106,16 @@ async function main() {
       assert.equal((await api(seller.token,'state')).user.credits,100+spent);
       await api(buyer.token,'projects/delete',{projectId:project.id});
       report.cancellation={passed:true}; console.log('PASS real Docker: cancellation stops container and refunds budget');
+      const failure=await upload(buyer.token,Buffer.from(JSON.stringify({version:1,kind:'python',entry:'fail.py',files:[{path:'fail.py',data:Buffer.from("raise RuntimeError('EXPECTED_TEST_FAILURE')\n").toString('base64')}]})));
+      const failed=await api(buyer.token,'jobs',{...params,projectId:failure.id,providerId:provider.id});
+      let failedJob;
+      for(let i=0;i<600;i++){failedJob=app.hub.s.jobs.find(j=>j.id===failed.id);if(failedJob.status!=='running')break;await sleep(200);}
+      assert.equal(failedJob.status,'error');assert.equal(failedJob.tasks[0].attempts,5);assert.equal(failedJob.spent,0);
+      assert.match(failedJob.error,/EXPECTED_TEST_FAILURE/);
+      assert.equal((await api(buyer.token,'state')).user.credits,100-spent);
+      assert.equal((await api(seller.token,'state')).user.credits,100+spent);
+      await api(buyer.token,'projects/delete',{projectId:failure.id});
+      report.failure={passed:true,attempts:5,spent:0};console.log('PASS real Docker: failed code retries at most five times, keeps its error and refunds without payment');
     }
     fs.writeFileSync(path.join(resultDirectory,'report.json'),JSON.stringify(report,null,2));
   } finally { await agent?.stop(); await app.close(); }

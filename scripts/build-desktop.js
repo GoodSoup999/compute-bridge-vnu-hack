@@ -28,6 +28,7 @@ async function main() {
     }
     fs.mkdirSync(path.join(stage, 'scripts'), { recursive: true });
     fs.copyFileSync(path.join(root, 'scripts/prepare-runtime.js'), path.join(stage, 'scripts/prepare-runtime.js'));
+    fs.copyFileSync(path.join(root, 'scripts/install-workload-runtime.ps1'), path.join(stage, 'scripts/install-workload-runtime.ps1'));
     if (process.env.CB_HUB_URL) fs.writeFileSync(path.join(stage, 'desktop/config.json'), JSON.stringify({ hubUrl: require('../lib/remote-agent').hubUrl(process.env.CB_HUB_URL) }));
     fs.writeFileSync(path.join(stage, 'package.json'), JSON.stringify({
       name: 'compute-bridge-desktop',

@@ -5,6 +5,7 @@
 1. Instalează Docker Desktop și WSL 2. În PowerShell ca administrator:
 
 ```powershell
+winget install --id Microsoft.WSL --exact
 wsl --install --no-distribution
 winget install --id Docker.DockerDesktop --exact
 ```
@@ -16,6 +17,8 @@ docker run --rm hello-world
 ```
 
 [Instrucțiuni oficiale Docker](https://docs.docker.com/desktop/setup/install/windows-install/).
+
+Alternativ, din surse, în PowerShell ca administrator: `powershell -ExecutionPolicy Bypass -File scripts/install-workload-runtime.ps1`. Scriptul este inclus și în `resources/app/scripts` din pachetul desktop. Nu repornește automat Windows.
 
 3. Din folderul surselor Compute Bridge, cu Node.js 24 instalat, rulează:
 
@@ -69,6 +72,8 @@ Varianta `--protocol` verifică numai transferul, validarea, atribuirea și cont
 ```
 
 Programul citește din `/inputs` și scrie rezultatele în folderul curent `/outputs`. Pot fi incluse module Python, date și modele. Nu include parole sau chei. Împachetează folderul:
+
+Pentru fișiere aflate într-un singur folder poți folosi direct **Încarcă fișierele tale direct** din aplicație: selectezi toate fișierele împreună, alegi programul de pornire și parametrii ca listă JSON. Pentru video alegi și dimensiunile/formatul; pentru compilare alegi Windows sau Linux. După încărcare pornești lucrarea. Nu este necesar Node.js pe cumpărător.
 
 ```powershell
 node scripts/pack-task.js C:\proiect C:\proiect.cbtask
