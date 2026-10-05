@@ -15,6 +15,12 @@ Creat pentru **VNU Hack · Be The Middle Man**. Intermediem resursele, lucrăril
 >
 > **Îmbunătățire propusă, încă neimplementată:** un asistent de instalare integrat, pornit din „Pregătește PC-ul meu”, care detectează hardware-ul și componentele existente, explică ce este necesar pentru lucrările alese, instalează cu acordul utilizatorului doar componentele lipsă din surse oficiale și pregătește mediul de calcul. Ar afișa progresul, ar relua pregătirea după un eventual restart și ar rula o lucrare de verificare înainte de ofertare. O adresă permanentă a serverului ar elimina și schimbarea manuală a linkului. Obiectivul este **o singură instalare ghidată**, fără comenzi copiate în terminal; utilizatorul care doar trimite lucrări remote ar păstra instalarea simplă a aplicației.
 
+## Problema pe care o rezolvăm
+
+Un student sau creator poate ajunge la limita laptopului când randează o animație, rulează o simulare sau procesează date. Are nevoie de mai multă putere de calcul **pentru un proiect sau un interval scurt**, dar cumpărarea unui PC mai puternic poate fi prea costisitoare pentru acea nevoie temporară.
+
+În același timp, alte calculatoare au resurse disponibile. **Nevoia și capacitatea există, dar accesul la ele presupune găsirea unui furnizor, verificarea compatibilității, transferul fișierelor și urmărirea rezultatelor.** Compute Bridge reunește acești pași într-o aplicație: conectează utilizatorii cu PC-uri disponibile, gestionează lucrările și recompensează furnizorii în credite. Scopul este accesul la capacitate suplimentară fără un upgrade imediat; avantajul de cost față de alternative trebuie încă măsurat.
+
 ## Ce face aplicația
 
 | Lucrare | Intrare → rezultat |
