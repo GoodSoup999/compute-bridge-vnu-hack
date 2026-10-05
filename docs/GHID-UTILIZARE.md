@@ -14,6 +14,8 @@
 4. În folderul extras, deschide **`ComputeBridge.exe`**.
 5. Așteaptă **Conectat la server**. Adresa serverului echipei este deja inclusă în această descărcare.
 
+**Serverul demo actual:** https://taste-electronics-ancient-passion.trycloudflare.com. Dacă ai descărcat aplicația înainte de actualizarea adresei, descarcă din nou ZIP-ul desktop din același release 0.7.1 și extrage-l într-un folder nou. Copiile vechi nu se actualizează automat.
+
 **Pentru lucrări remote, nu trebuie să instalezi Node.js, Docker, WSL, Python sau Blender. Nu trebuie să rulezi `Pregateste mediul.cmd` și nici să pornești un server.** Mediul de execuție este pregătit pe furnizori.
 
 ## 2. Creează contul și găsește un PC
