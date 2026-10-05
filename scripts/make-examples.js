@@ -19,6 +19,9 @@ function make(destination = path.resolve(__dirname, '../test-kit')) {
   require('../lib/workload-bundle').validateBundle(Buffer.from(JSON.stringify(video)));
   fs.writeFileSync(path.join(destination,'video.cbtask'),JSON.stringify(video));
   fs.copyFileSync(path.join(__dirname, '../docs/TEST-WORKLOADS.md'), path.join(destination,'CITESTE-MA.md'));
+  fs.copyFileSync(path.join(__dirname, '../docs/TEST-WORKLOADS.md'), path.join(destination,'TEST-WORKLOADS.md'));
+  fs.copyFileSync(path.join(__dirname, '../docs/DEMO-MAINE.md'), path.join(destination,'DEMO-MAINE.md'));
+  fs.cpSync(path.join(__dirname, '../examples'),path.join(destination,'sources'),{recursive:true,filter:file=>!file.endsWith('.pyc')&&!file.split(path.sep).includes('__pycache__')});
   return destination;
 }
 module.exports = { make, avi };
