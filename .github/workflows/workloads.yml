@@ -42,9 +42,11 @@ jobs:
           name: workload-results-and-test-kit
       - shell: pwsh
         run: |
-          $program = Resolve-Path 'tmp/workload-results/compile/program.exe'
-          $output = & $program
-          if ($LASTEXITCODE -ne 0) { throw 'Compiled program failed' }
-          $result = $output | ConvertFrom-Json
-          if ($result.sum -ne 55) { throw 'Unexpected compiled program result' }
-          Write-Host 'PASS compiled Windows executable: sum=55'
+          foreach ($case in @('compile', 'compile-c')) {
+            $program = Resolve-Path "tmp/workload-results/$case/program.exe"
+            $output = & $program
+            if ($LASTEXITCODE -ne 0) { throw 'Compiled program failed' }
+            $result = $output | ConvertFrom-Json
+            if ($result.sum -ne 55) { throw 'Unexpected compiled program result' }
+            Write-Host "PASS $case Windows executable: sum=55"
+          }

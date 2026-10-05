@@ -42,6 +42,9 @@ async function main() {
     await api(buyer.token, 'projects/delete', { projectId:one.id });
     provider = await api(seller.token, 'devices', { ...config, workloads:true });
     if (!protocol) {
+      const c=Buffer.from('#include <stdio.h>\n#include <stdlib.h>\nint main(void){int *v=malloc(sizeof(int));*v=55;printf("{\\"sum\\":%d}\\n",*v);free(v);return 0;}\n');
+      for(const target of ['windows','linux'])fs.writeFileSync(path.join(kit,target==='windows'?'compile-c.cbtask':'compile-linux.cbtask'),JSON.stringify({version:1,kind:'compile',entry:'main.c',config:{target},files:[{path:'main.c',data:c.toString('base64')}]}));
+      const webm=JSON.parse(fs.readFileSync(path.join(kit,'video.cbtask')));webm.config.format='webm';fs.writeFileSync(path.join(kit,'video-webm.cbtask'),JSON.stringify(webm));
       agent = new RemoteAgent({ server:base,token:provider.token,config:{...config,workloads:true} }); await agent.start();
     } else await api(provider.token, 'agent/heartbeat', {});
     let spent=0;
@@ -49,7 +52,7 @@ async function main() {
       const script = `import json, os, socket\nfrom pathlib import Path\nr={'unprivileged':os.geteuid()==65534}\nfor key,target in [('readonly_inputs','/inputs/blocked'),('readonly_root','/blocked')]:\n try: Path(target).write_text('x'); r[key]=False\n except OSError: r[key]=True\ntry:\n s=socket.create_connection(('1.1.1.1',80),timeout=.5); s.close(); r['no_network']=False\nexcept OSError: r['no_network']=True\nPath('isolation.json').write_text(json.dumps(r))\n`;
       fs.writeFileSync(path.join(kit,'isolation.cbtask'),JSON.stringify({version:1,kind:'python',entry:'probe.py',files:[{path:'probe.py',data:Buffer.from(script).toString('base64')}]}));
     }
-    for (const name of ['video','python','ai-inference','ai-training','compile','simulation',...(!protocol?['isolation']:[])]) {
+    for (const name of ['video','python','ai-inference','ai-training','compile','simulation',...(!protocol?['compile-c','compile-linux','video-webm','isolation']:[])]) {
       const bytes=fs.readFileSync(path.join(kit,name+'.cbtask')); const bundle=validateBundle(bytes);
       const project=await upload(buyer.token,bytes);
       const created=await api(buyer.token,'jobs',{...params,mode:bundle.kind,projectId:project.id,providerId:provider.id});
@@ -76,12 +79,17 @@ async function main() {
         if(name==='python')assert.deepEqual(json('statistics.json'),{count:10,sum:55,mean:5.5});
         if(name==='ai-inference')assert.deepEqual(json('predictions.json'),[1,3,5,11]);
         if(name==='ai-training'){const model=json('trained-model.json');assert.ok(Math.abs(model.weight-2)<.01);assert.ok(Math.abs(model.bias-1)<.01);assert.ok(model.loss<.0001);assert.ok(files['weights.pt'].length>100);}
-        if(name==='compile')assert.equal(files['program.exe'].subarray(0,2).toString(),'MZ');
+        if(name==='compile'||name==='compile-c')assert.equal(files['program.exe'].subarray(0,2).toString(),'MZ');
+        if(name==='compile-linux'){
+          const directory=path.join(resultDirectory,name);fs.chmodSync(path.join(directory,'program-linux'),0o755);
+          assert.deepEqual(JSON.parse(await command(['run','--rm','--network','none','--entrypoint','/verify/program-linux','--mount','type=bind,source='+directory+',target=/verify,readonly','compute-bridge/workloads:0.7.0'],30000)),{sum:55});
+        }
         if(name==='isolation')assert.deepEqual(json('isolation.json'),{unprivileged:true,readonly_inputs:true,readonly_root:true,no_network:true});
         if(name==='simulation'){const result=json('summary.json');assert.ok(Math.abs(result.position-Math.cos(10))<.002);assert.ok(Math.abs(result.energy-.5)<.001);assert.equal(files['trajectory.csv'].toString().trim().split(/\r?\n/).length,101);}
-        if(name==='video'){
-          assert.equal(files['converted.mp4'].subarray(4,8).toString(),'ftyp');
-          const info=JSON.parse(await command(['run','--rm','--network','none','--entrypoint','ffprobe','--mount','type=bind,source='+path.join(resultDirectory,name)+',target=/verify,readonly','compute-bridge/workloads:0.7.0','-v','error','-show_entries','stream=width,height','-of','json','/verify/converted.mp4'],30000));
+        if(name==='video'||name==='video-webm'){
+          const file=name==='video'?'converted.mp4':'converted.webm';
+          if(name==='video')assert.equal(files[file].subarray(4,8).toString(),'ftyp');else assert.equal(files[file].subarray(0,4).toString('hex'),'1a45dfa3');
+          const info=JSON.parse(await command(['run','--rm','--network','none','--entrypoint','ffprobe','--mount','type=bind,source='+path.join(resultDirectory,name)+',target=/verify,readonly','compute-bridge/workloads:0.7.0','-v','error','-show_entries','stream=width,height','-of','json','/verify/'+file],30000));
           assert.equal(info.streams[0].width,128);assert.equal(info.streams[0].height,128);
         }
       }
