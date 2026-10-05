@@ -2,6 +2,8 @@
 
 ### Oferă putere de calcul. Folosește putere de calcul.
 
+**Site-ul proiectului: [node-compute.vercel.app](https://node-compute.vercel.app/)**
+
 **Compute Bridge transformă PC-urile personale disponibile într-un marketplace de calcul.** Dintr-o aplicație Windows, îți oferi resursele pentru un interval ales sau trimiți propriile fișiere către PC-uri compatibile. Primești rezultate, urmărești progresul și plătești în credite; furnizorul câștigă acele credite pentru sarcinile acceptate.
 
 Creat pentru **VNU Hack · Be The Middle Man**. Intermediem resursele, lucrările, fișierele și creditarea între oameni care au hardware disponibil și oameni care au nevoie de el.
