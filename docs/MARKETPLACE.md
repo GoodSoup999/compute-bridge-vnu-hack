@@ -1,8 +1,8 @@
-# Credite și oferte — beta 0.5
+# Credite și oferte — beta 0.7.1
 
 ## Credite
 
-Fiecare cont primește 100 de credite de test o singură dată. Autentificarea sau restart-ul nu acordă bonusul din nou. Conturile vechi fără bonus îl primesc la actualizare. Creditele nu au valoare monetară, cumpărare sau retragere.
+Fiecare cont primește 100 de credite de test o singură dată. Autentificarea sau restart-ul nu acordă bonusul din nou. Conturile vechi fără bonus îl primesc la actualizare. Creditele nu au valoare monetară. În 0.7.1, tabul Credite permite cumpărare și retragere simulate: 100 credite = 1 EUR demonstrativ, fără plată sau transfer bancar. Cumpărarea adaugă credite, retragerea scade soldul disponibil, istoricul persistă; nu se pot retrage creditele rezervate. Operațiile sunt marcate DEMO și nu cer card/IBAN.
 
 La trimiterea lucrării, serverul verifică dacă există un PC remote conectat, oferit și compatibil cu tipul lucrării și memoria necesară. Pentru un PC selectat, alte PC-uri nu pot prelua sarcinile acestuia. Alternativ, modul automat distribuie sarcini între ofertele compatibile.
 
@@ -13,6 +13,7 @@ Unitățile de demo:
 - Fractal: 10 milioane `lățime × rânduri × iterații`.
 - Ray tracing: 125.000 `lățime × rânduri × mostre`.
 - Blender: 20 milioane `lățime × înălțime × mostre` per cadru.
+- Pachete generale: tariful furnizorului ×1 pentru Python/simulare, ×2 pentru video/compilare, ×4 pentru AI, per execuție acceptată.
 
 Prețul = unități × tariful ofertei, rotunjit în sus la 0,001 credite, minimum 0,01. Durata raportată de furnizor nu determină plata. Contribuția laptopului clientului în modul mixt este gratuită. Aceste unități sunt convenții de demo, nu un benchmark comparabil între tipurile de lucrări.
 
@@ -32,6 +33,6 @@ La crearea lucrării, cerințele sunt calculate automat pentru scenele incluse: 
 
 Maximum 12 sarcini CPU și una GPU simultan per dispozitiv, în limitele configurate. PC-ul cu loc liber preia următoarea sarcină. Profilul CPU introduce pauze între sarcini; memoria liberă sub 1 GB oprește temporar atribuirea locală. RAM/VRAM declarate sunt criterii de admitere, nu cote hardware stricte. Memoria nu se cumulează între PC-uri. GPU-ul poate fi solicitat intens.
 
-Se execută numai fractal CPU, ray tracing CPU și animația procedurală Blender inclusă. Nu există scripturi încărcate, fișiere `.blend` arbitrare, terminal remote sau acces general la fișierele altui PC. CPU: se recalculează un rând aleator din rezultat. GPU: se verifică semnătura PNG, dimensiunile și mărimea; corectitudinea randării nu este dovedită independent.
+Se execută fractal/ray tracing demo, scene Blender incluse sau proiecte proprii acceptate de furnizor și pachete video, Python, AI CPU, compilare C/C++ și simulări. Pachetele proprii rulează într-un container Docker limitat, pe un furnizor per pachet; nu există terminal remote sau acces general la fișierele furnizorului. Blender rulează local fără aceeași izolare. CPU demo: se recalculează un rând aleator din rezultat. GPU: se verifică PNG, dimensiunile și mărimea. Pachete: se validează structura și limitele rezultatului, fără dovada corectitudinii unui calcul arbitrar. [Limite și pregătire](TEST-WORKLOADS.md).
 
 Conexiunile remote folosesc HTTPS. Parolele folosesc scrypt cu salt; tokenurile sunt stocate ca hash-uri pe server și rămân în procesul local al aplicației, fără a ajunge în interfață. Există limitări de încercări de autentificare și de lucrări active. Nu există încă verificare email, recuperare parolă sau protecție completă împotriva conturilor multiple și rezultatelor GPU frauduloase. Folosește beta cu participanți cunoscuți și credite de test.

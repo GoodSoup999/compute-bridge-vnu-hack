@@ -69,6 +69,11 @@ function render(data) {
   $('connection').textContent = data.hub.message; $('dot').className = data.hub.connected ? 'online':'';
   if (!s) { $('balance').textContent = ''; closeViewer(); return; }
   $('balance').textContent = money(s.user.credits)+' credite'; $('greeting').textContent = 'BUN VENIT, '+s.user.name.toUpperCase();
+  const economyReady = !!s.wallet?.demo && !!data.hub.features?.includes('economy-demo-v1');
+  $('buyCreditsButton').disabled = !economyReady; $('withdrawCreditsButton').disabled = !economyReady;
+  $('economyStatus').textContent = economyReady ? 'Simulare activă: cumpărările și retragerile modifică soldul de test.' : 'Actualizează serverul pentru economia demo. Lucrările existente pot continua.';
+  $('walletBalance').textContent = `${money(s.user.credits)} credite disponibile · echivalent demo ${euro(s.user.credits / 100)}`;
+  $('demoTransactions').innerHTML = (s.wallet?.transactions || []).map(t=>`<div class="ledgerrow"><span>${t.kind==='buy'?'Cumpărare':'Retragere'} · SIMULATĂ<br><small class="sub">${new Date(t.at).toLocaleString('ro-RO')} · ${esc(t.id)}</small></span><strong>${money(t.credits)} credite / ${euro(t.euroCents / 100)}</strong></div>`).join('') || empty('Nicio cumpărare sau retragere simulată.');
   const hw = data.hardware;
   $('workloadOffer').disabled = !hw.workloadRuntime?.ready;
   $('workloadReason').textContent = hw.workloadRuntime?.ready ? 'Mediul izolat este pregătit. Oferă minimum un fir CPU.' : hw.workloadRuntime?.reason || 'Instalează Docker Desktop și pregătește mediul Compute Bridge.';
@@ -113,6 +118,31 @@ async function refresh(force = false) {
   try { await pending; } finally { if (refreshPromise === pending) refreshPromise = null; }
 }
 async function perform(fn, message) { try { await fn(); if (message) notice(message); await refresh(true); } catch(e) { notice(e.message); } }
+function euro(value) { return Number(value).toLocaleString('ro-RO', {style:'currency', currency:'EUR'}); }
+function walletQuote() {
+  $('buyQuote').textContent = `Cost simulat: ${euro(Number($('buyCreditsForm').elements.credits.value) / 100)}. Fără plată reală.`;
+  $('withdrawQuote').textContent = `Retragere simulată: ${euro(Number($('withdrawCreditsForm').elements.credits.value) / 100)}. Fără transfer bancar.`;
+}
+for (const [formId, kind] of [['buyCreditsForm','buy'], ['withdrawCreditsForm','withdraw']]) {
+  const form = $(formId); form.addEventListener('input', walletQuote);
+  form.onsubmit = e => {
+    e.preventDefault();
+    const credits = Number(form.elements.credits.value);
+    // Retain the request ID on a failed response so retrying cannot debit twice.
+    if (form.dataset.pendingCredits !== String(credits)) { form.dataset.requestId = crypto.randomUUID(); form.dataset.pendingCredits = String(credits); }
+    const button = form.querySelector('button');
+    if (button.disabled) return;
+    button.disabled = true;
+    perform(async () => {
+      try {
+        await action('wallet/' + kind, {credits, requestId:form.dataset.requestId});
+        delete form.dataset.pendingCredits; delete form.dataset.requestId;
+        notice(kind==='buy'?'Credite adăugate prin simulare. Nu s-a efectuat o plată reală.':'Credite retrase prin simulare. Nu s-au trimis bani.');
+      } finally { button.disabled = false; }
+    });
+  };
+}
+walletQuote();
 $('authForm').addEventListener('submit',e=>{e.preventDefault();const intent=e.submitter.value;const b=formData(e.currentTarget);perform(async()=>{await api(intent,b);e.target.elements.password.value='';initialized=false;},'Conectat.');});
 $('logout').onclick=()=>perform(async()=>{await api('logout',{});initialized=false;tab('market');closeViewer();},'Ai ieșit din cont.');
 $('offerForm').onsubmit=e=>{e.preventDefault();perform(()=>api('device',formData(e.target)),'PC-ul tău este conectat și oferit în marketplace.');};

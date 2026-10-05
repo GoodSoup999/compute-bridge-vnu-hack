@@ -74,3 +74,5 @@ Lista nu dovedește proprietatea emailului. Creditele sunt de test și nu au val
 `data/hub.sqlite` păstrează conturi, tranzacții, oferte, lucrări și rezultate. SQLite folosește WAL și tranzacții; o singură instanță poate folosi fișierul. Oprește serverul înainte de backup-ul folderului `data`.
 
 La restart, sarcinile neterminate revin în coadă și garanțiile se restituie fără penalizare. Agenții de la aceeași adresă reîncearcă automat. Rezultatele se păstrează 7 zile. Variabile: `HUB_PORT`, `HUB_BIND`, `HUB_DB`, `HUB_ALLOWED_EMAILS`, `CLOUDFLARED_PATH`.
+
+În 0.7.1, economia demo necesită actualizarea gazdei și clientului. `/health` trebuie să includă `economy-demo-v1`; cumpărarea/retragerea simulate modifică soldul și istoricul din aceeași bază de date, fără servicii de plată. Nu este necesară reconstruirea imaginii Docker 0.7.0.

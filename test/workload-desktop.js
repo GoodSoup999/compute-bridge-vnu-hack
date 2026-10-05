@@ -13,6 +13,13 @@ async function main(){
   const html=await(await fetch(url)).text();const key=html.match(/meta name="cb-key" content="([^"]+)"/)[1];
   const local=async(route,data)=>{const r=await fetch(url+'local/'+route,{method:data===undefined?'GET':'POST',headers:{'x-app-key':key,'content-type':'application/json'},body:data===undefined?undefined:JSON.stringify(data)});const value=await r.json();assert.equal(r.status,200,JSON.stringify(value));return value;};
   await local('register',{email:'desktop-buyer@test.example',password:'password-test-123'});
+  const transaction={credits:100,requestId:require('node:crypto').randomUUID()};
+  await local('action',{endpoint:'wallet/buy',data:transaction});
+  assert.equal((await local('state')).state.user.credits,200);
+  await local('action',{endpoint:'wallet/buy',data:transaction});
+  assert.equal((await local('state')).state.user.credits,200);
+  await local('action',{endpoint:'wallet/withdraw',data:{credits:100,requestId:require('node:crypto').randomUUID()}});
+  assert.equal((await local('state')).state.user.credits,100);
   assert.equal((await fetch(url+'task-bundle.js')).status,200);
   const seller=await request(base,'','/v1/auth/register','POST',{email:'desktop-seller@test.example',password:'password-test-123'});
   const device=await request(base,seller.token,'/v1/devices','POST',{clientKey:require('node:crypto').randomBytes(32).toString('hex'),name:'Workload PC',slots:1,ramGb:4,workloads:true,market:true,until:Date.now()+3600000,price:1});

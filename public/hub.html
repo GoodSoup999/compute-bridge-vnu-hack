@@ -25,7 +25,13 @@
     <p id="requirements" class="hint" aria-live="polite"></p><p class="hint">Bugetul se rezervă la pornire. PC-ul ales primește credite pentru calcul, iar restul bugetului revine în sold la finalizare sau anulare.</p><button id="jobButton" class="primary">Pornește lucrarea</button></form>
     <div><h2>Lucrările tale</h2><div id="jobs" class="stack"></div><section id="viewer" class="card" hidden><div class="actions"><h3>Rezultatul lucrării</h3><button id="closeViewer" type="button">Închide</button></div><img id="resultImage" alt="Rezultatul calculului"><div id="player" hidden><button id="play" type="button">Redă / pauză</button><label>Viteză: <span id="fpsLabel">12</span> FPS<input id="fps" type="range" min="1" max="30" value="12"></label><span id="frameLabel"></span></div><a id="download" class="button" download="rezultat.png">Descarcă imaginea afișată</a></section></div>
   </div></section>
-  <section data-panel="wallet" hidden><p class="eyebrow">SOLD ȘI TRANZACȚII</p><h2>Creditele tale</h2><p>Începi cu 100 de credite de test. Consumi credite când folosești alte PC-uri și câștigi credite când PC-ul tău calculează pentru alții.</p><div id="ledger" class="card"></div></section>
+  <section data-panel="wallet" hidden><p class="eyebrow">SOLD ȘI TRANZACȚII</p><h2>Creditele tale</h2><p>Consumi credite când folosești alte PC-uri și câștigi credite când PC-ul tău calculează pentru alții.</p>
+    <div class="card"><span class="badge">ECONOMIE DEMO</span><h3 id="walletBalance">Sold disponibil</h3><p>100 credite = 1 EUR în simulare. Nu se încasează și nu se transferă bani reali. Creditele de test și echivalentul afișat nu au valoare monetară.</p><p id="economyStatus" class="hint"></p></div>
+    <div class="columns">
+      <form id="buyCreditsForm" class="card"><h3>Cumpără credite · demo</h3><label>Credite<input name="credits" type="number" min="10" max="10000" step="1" value="500" required></label><p id="buyQuote" class="hint"></p><p class="hint">Simulăm o plată aprobată. Nu introduci date de card.</p><button id="buyCreditsButton" class="primary">Simulează cumpărarea</button></form>
+      <form id="withdrawCreditsForm" class="card"><h3>Retrage credite · demo</h3><label>Credite<input name="credits" type="number" min="10" max="10000" step="1" value="100" required></label><p id="withdrawQuote" class="hint"></p><p class="hint">Creditele se scad din soldul disponibil. Nu se trimite un transfer bancar; nu cerem IBAN.</p><button id="withdrawCreditsButton">Simulează retragerea</button></form>
+    </div><h3>Cumpărări și retrageri simulate</h3><div id="demoTransactions" class="card"></div><h3>Istoricul creditelor</h3><div id="ledger" class="card"></div>
+  </section>
 </section><div id="notice" role="status" hidden></div>
-</main><footer>Compute Bridge · Beta APP_VERSION · Credite interne · Lucrări CPU și Blender · Gazda și aplicațiile furnizoare trebuie să rămână pornite</footer>
+</main><footer>Compute Bridge · Beta APP_VERSION · Economie demo · CPU, Blender și fișiere proprii · Gazda și furnizorii trebuie să rămână porniți</footer>
 </body></html>

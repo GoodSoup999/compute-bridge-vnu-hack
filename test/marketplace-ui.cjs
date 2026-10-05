@@ -10,12 +10,19 @@ async function main() {
   const job = { id: 'test-job', mode: 'fractal', status: 'running', provider: 'Seller', execution: 'remote', done: 0, total: 10, spent: 0, reserved: 30, contributions: {} };
   const state = { hub: { connected: true, message: 'Conectat' }, serverTime: Date.now(), hardware: { hostname: 'Test', threads: 8, ramGb: 16, gpus: [], gpuRenderReason: 'Test CPU' }, state: { user: { id: 'buyer', name: 'Test', credits: 100 }, devices: [], jobs: [job], ledger: [] }, agent: null };
   let delayNextState = false;
-  server = http.createServer((req, res) => {
+  server = http.createServer(async (req, res) => {
     if (req.url === '/local/state') {
       const body = JSON.stringify(state); const delay = delayNextState; delayNextState = false;
       return setTimeout(() => { res.setHeader('content-type', 'application/json'); res.end(body); }, delay ? 300 : 0);
     }
     if (req.url === '/local/action') {
+      const parts=[]; for await(const p of req)parts.push(p); const body=JSON.parse(Buffer.concat(parts));
+      if(body.endpoint?.startsWith('wallet/')) {
+        const kind=body.endpoint.endsWith('buy')?'buy':'withdraw';
+        state.state.user.credits+=(kind==='buy'?1:-1)*body.data.credits;
+        state.state.wallet.transactions.unshift({id:'demo-transaction-'+kind,kind,credits:body.data.credits,euroCents:body.data.credits,status:'simulated',at:Date.now()});
+        res.setHeader('content-type','application/json'); return res.end('{"ok":true}');
+      }
       job.status = 'cancelled'; job.reserved = 0; res.setHeader('content-type', 'application/json'); return res.end('{"ok":true}');
     }
     const file = ({ '/': 'hub.html', '/hub.js': 'hub.js', '/workload.js': 'workload.js', '/workload-types.js': 'workload-types.js', '/task-bundle.js':'task-bundle.js', '/hub.css': 'hub.css', '/ui.css': 'ui.css' })[req.url];
@@ -75,6 +82,26 @@ async function main() {
   for (let i = 0; i < 50 && !await run("document.getElementById('jobs').textContent.includes('Anulat')"); i++) await sleep(50);
   assert.match(await run("document.getElementById('jobs').textContent"), /Anulat/);
   assert.equal(await run("!!document.querySelector('[data-cancel]')"), false);
+  assert.equal(await run("document.getElementById('buyCreditsButton').disabled"),true,'older server must not advertise working economy');
+  state.hub.features=['economy-demo-v1']; state.state.wallet={demo:true,transactions:[]};
+  await run("refresh(true)"); await run("tab('wallet')");
+  assert.equal(await run("document.getElementById('buyCreditsButton').disabled"),false);
+  await run("document.getElementById('buyCreditsForm').requestSubmit();");
+  for(let i=0;i<50&&state.state.user.credits!==600;i++)await sleep(50);
+  await run('refresh(true)');
+  assert.equal(state.state.user.credits,600);
+  assert.match(await run("document.getElementById('walletBalance').textContent"),/600 credite/);
+  assert.match(await run("document.getElementById('demoTransactions').textContent"),/Cumpărare · SIMULATĂ/);
+  await run("document.getElementById('withdrawCreditsForm').requestSubmit();");
+  for(let i=0;i<50&&state.state.user.credits!==500;i++)await sleep(50);
+  await run('refresh(true)');
+  assert.equal(state.state.user.credits,500);
+  assert.match(await run("document.getElementById('demoTransactions').textContent"),/Retragere · SIMULATĂ/);
+  assert.match(await run("document.querySelector('[data-panel=wallet]').textContent"),/Nu se încasează și nu se transferă bani reali/);
+  if(process.argv.includes('--screenshot')){
+    await run("tab('wallet'); document.querySelector('[data-panel=wallet]').scrollIntoView();");
+    await sleep(200);fs.writeFileSync(path.resolve(__dirname,'../tmp/economy-ui.png'),(await window.webContents.capturePage()).toPNG());
+  }
   console.log('PASS UI: automatic memory estimates, progress while editing without lost draft/focus, cancellation visible despite focused button and in-flight stale refresh');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {

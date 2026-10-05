@@ -20,6 +20,7 @@ function deleteAccount(store, email, confirmed) {
     s.devices = s.devices.filter(d => d.ownerId !== user.id);
     s.sessions = s.sessions.filter(x => x.userId !== user.id);
     s.ledger = s.ledger.filter(x => x.userId !== user.id);
+    s.demoTransactions = (s.demoTransactions || []).filter(x => x.userId !== user.id);
     s.users = s.users.filter(u => u.id !== user.id);
     return { ok: true, deletedEmail: normalized };
   });

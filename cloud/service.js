@@ -245,6 +245,7 @@ class Hub {
       projects: (s.projects || []).filter(p => p.ownerId === uid).map(p => ({ id: p.id, kind: p.kind || 'blender', name: p.name, bytes: p.bytes })),
       devices: s.devices.filter(d => d.ownerId === uid || d.market && this.online(d)).map(d => ({ ...deviceView(d), customProjects: !!d.customProjects, workloads: !!d.workloads })),
       jobs: s.jobs.filter(j => j.ownerId === uid).slice(-30).reverse().map(j => ({ id: j.id, mode: j.mode, workload: !!j.workload, outputs: j.outputs, projectName: j.projectName, startFrame: j.startFrame, providerId: j.providerId, provider: s.devices.find(d => d.id === j.providerId)?.name || 'Automat', status: j.status, execution: j.execution, total: j.tasks.length, done: j.tasks.filter(t => t.status === 'done').length, spent: j.spent / 1000, reserved: j.escrow / 1000, error: j.error, waiting: this.waitingReason(j), frames: j.frames, contributions: j.tasks.filter(t => t.status === 'done').reduce((a, t) => { const name = s.devices.find(d => d.id === t.deviceId)?.name || 'PC'; a[name] = (a[name] || 0) + 1; return a; }, {}) })),
+      wallet: require('./demo-economy').view(this, uid),
       ledger: s.ledger.filter(l => l.userId === uid).slice(-30).reverse().map(l => ({ ...l, delta: l.delta / 1000 })) };
   }
   close() { this.store.close(); }

@@ -138,7 +138,7 @@ const ui = http.createServer(async (req, res) => {
         await call('jobs', 'POST', { ...b, ...requirements(b), requestDeviceId: device.id });
       }
       else if (req.url === '/local/action') {
-        const allowed = ['devices/stop', 'jobs/cancel', 'jobs/budget', 'projects/delete'];
+        const allowed = ['devices/stop', 'jobs/cancel', 'jobs/budget', 'projects/delete', 'wallet/buy', 'wallet/withdraw'];
         if (!allowed.includes(b.endpoint)) throw new Error('Operație nepermisă'); await call(b.endpoint, 'POST', b.data);
       } else return json(res, 404, { error: 'Negăsit' });
       return json(res, 200, { ok: true });

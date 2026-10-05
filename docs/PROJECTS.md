@@ -16,7 +16,7 @@ Proiectele persistă la restart. Ștergerea este permisă doar proprietarului, c
 
 ## Furnizorul
 
-Folosește aplicația 0.6, activează oferta GPU și **Accept proiecte Blender încărcate de utilizatori**. Folosește versiuni Blender compatibile cu proiectele încărcate. Furnizorii vechi și cei fără această opțiune primesc în continuare doar sarcini demo. Descărcarea este verificată prin SHA-256 și mărime; proiectul este reutilizat pentru cadrele următoare, într-un cache temporar limitat la trei fișiere, curățat la oprirea agentului.
+Folosește aplicația curentă 0.7.1, activează oferta GPU și **Accept proiecte Blender încărcate de utilizatori**. Folosește versiuni Blender compatibile cu proiectele încărcate. Furnizorii vechi și cei fără această opțiune primesc în continuare doar sarcini demo. Descărcarea este verificată prin SHA-256 și mărime; proiectul este reutilizat pentru cadrele următoare, într-un cache temporar limitat la trei fișiere, curățat la oprirea agentului.
 
 ## Limite reale ale execuției
 
@@ -26,7 +26,7 @@ Se folosește Cycles GPU. Compositorul și sequencerul sunt dezactivate; resurse
 
 ## Extensibilitate
 
-`lib/task-adapters.js` separă execuția de transferuri, distribuire și credite. Adaptoarele implementate: fractal demo, ray tracing demo, Blender demo și proiect Blender propriu. Următorii adap­tori pot adăuga video sau alte programe, dar fiecare are nevoie de validarea intrărilor, mediul potrivit, rezultate verificabile și izolare adecvată. În această versiune nu există execuție universală de cod sau însumarea RAM/VRAM între PC-uri.
+`lib/task-adapters.js` separă execuția de transferuri, distribuire și credite. Pe lângă fractal, ray tracing și Blender, versiunea curentă include adaptoare Docker pentru video, Python, AI CPU, compilare C/C++ și simulări; [ghid separat](TEST-WORKLOADS.md). Fiecare adaptor nou cere validare, un mediu potrivit, rezultate și teste. Nu există execuție universală de programe sau însumarea RAM/VRAM între PC-uri.
 
 ## Gazda
 

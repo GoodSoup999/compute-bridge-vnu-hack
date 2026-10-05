@@ -43,7 +43,7 @@ function createHubServer(options = {}) {
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://hub'); const route = url.pathname;
-      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 5, features: ['blender-projects-v1', 'workload-bundles-v1'] });
+      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 5, features: ['blender-projects-v1', 'workload-bundles-v1', 'economy-demo-v1'] });
       if (!route.startsWith('/v1/')) return json(res, 404, { error: 'Negăsit' });
       if (route === '/v1/projects' && req.method === 'PUT') {
         const user = hub.authenticate(String(req.headers.authorization || '').replace(/^Bearer /, ''));
@@ -95,6 +95,8 @@ function createHubServer(options = {}) {
       if (route === '/v1/devices/stop' && req.method === 'POST') return json(res, 200, hub.revokeDevice(user.id, body.deviceId));
       if (route === '/v1/jobs' && req.method === 'POST') return json(res, 201, hub.createJob(user.id, body));
       if (route === '/v1/jobs/cancel' && req.method === 'POST') return json(res, 200, hub.cancel(user.id, body.jobId));
+      if (route === '/v1/wallet/buy' && req.method === 'POST') return json(res, 200, require('./demo-economy').transact(hub, user.id, 'buy', body));
+      if (route === '/v1/wallet/withdraw' && req.method === 'POST') return json(res, 200, require('./demo-economy').transact(hub, user.id, 'withdraw', body));
       if (route === '/v1/jobs/budget' && req.method === 'POST') return json(res, 200, hub.addBudget(user.id, body.jobId, body.amount));
       if (route === '/v1/projects/delete' && req.method === 'POST') return json(res, 200, require('./projects').remove(hub, user.id, body.projectId));
       const artifact = /^\/v1\/jobs\/([a-f0-9-]+)\/file$/.exec(route);
