@@ -83,10 +83,14 @@ function render(data) {
     $('slots').max = Math.min(hw.threads,12); $('slots').value = data.config?.slots ?? Math.max(1,Math.min(2,hw.threads-1));
     $('ram').value = data.config?.ramGb ?? Math.max(1,Math.min(4,hw.ramGb-2)); $('ram').max = Math.max(1,hw.ramGb-1);
     $('vram').value = data.config?.vramGb ?? (hw.gpus.find(g=>g.nvidia)?.vramGb || 0);
+    $('powerWatts').value = data.config?.powerWatts ?? 150; $('electricityRate').value = data.config?.electricityRate ?? 1;
     $('gpu').disabled = !!hw.gpuRenderReason; $('gpuReason').textContent = hw.gpuRenderReason || 'Blender și GPU NVIDIA detectate.';
     initialized = true;
   }
   const a = data.agent;
+  const energy = a?.energy;
+  const energyNumber = n=>Number(n || 0).toLocaleString('ro-RO',{maximumFractionDigits:6});
+  $('energyUsage').textContent = `${energyNumber((energy?.kWh || 0)*1000)} Wh · ${energyNumber(energy?.kWh)} kWh · ${energyNumber(energy?.costLei)} lei`;
   const active = a && a.state !== 'stopped';
   const ownOffer = s.devices.find(d=>d.id===data.deviceId && d.market && d.online);
   const labels = {connected:'PC conectat',reconnecting:'Reconectare…',draining:'Termin lucrul…',stopped:'PC oprit'};

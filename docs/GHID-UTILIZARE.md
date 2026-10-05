@@ -64,6 +64,7 @@ După verificarea reușită, deschide **Pregateste mediul.cmd** din pachetul apl
 - Interval: **1 oră**; fire CPU: **2**; ritm: **50%**.
 - RAM: **4 GB**; tarif: **1 credit/unitate**. Pentru Blender declară VRAM disponibilă.
 - Activează tipurile de lucru pentru care ai pregătit mediul.
+- Opțional, în **Estimare electricitate**, introdu puterea medie totală a PC-ului în W și tariful tău lei/kWh. Valorile inițiale 150 W și 1 leu/kWh sunt exemple; energia/costul apar în Starea PC-ului meu pentru sesiunea curentă, nu sunt măsurători la priză.
 - Apasă **Oferă PC-ul** și verifică apariția PC-ului în marketplace pe celălalt cont.
 
 Lasă aplicația, Docker dacă este necesar și PC-ul pornite. Nu este suficient doar să intri în cont. Nu primești credite dacă nu se execută sarcini acceptate. Pentru oprire normală, folosește **Termin lucrul și opresc oferta**. Oprirea imediată poate pierde garanția sarcinii active.

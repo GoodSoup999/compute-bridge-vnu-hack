@@ -102,7 +102,10 @@ async function main() {
     await run("tab('wallet'); document.querySelector('[data-panel=wallet]').scrollIntoView();");
     await sleep(200);fs.writeFileSync(path.resolve(__dirname,'../tmp/economy-ui.png'),(await window.webContents.capturePage()).toPNG());
   }
-  console.log('PASS UI: automatic memory estimates, progress while editing without lost draft/focus, cancellation visible despite focused button and in-flight stale refresh');
+  state.agent={state:'stopped',active:[],done:1,energy:{kWh:0.15,costLei:0.3}};
+  await run('refresh(true)');
+  assert.match(await run("document.getElementById('energyUsage').textContent"),/150 Wh · 0,15 kWh · 0,3 lei/);
+  console.log('PASS UI: automatic memory estimates, progress/cancellation, demo economy and estimated energy display');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   window?.destroy(); if (server) await new Promise(resolve => server.close(resolve)); app.exit(process.exitCode || 0);

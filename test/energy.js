@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');const {EnergyEstimate,energySettings}=require('../lib/energy');
+let now=0;const meter=new EnergyEstimate({powerWatts:100,electricityRate:2},()=>now);
+now=3600000;assert.equal(meter.snapshot().kWh,0,'idle is not execution');
+meter.begin('cpu');now+=1800000;meter.begin('gpu');now+=1800000;
+assert.equal(meter.snapshot().kWh,0.1,'overlapping CPU/GPU does not count the PC twice');
+meter.end('cpu');now+=1800000;meter.end('gpu');
+assert.equal(meter.snapshot().kWh,0.15);assert.ok(Math.abs(meter.snapshot().costLei-0.3)<1e-12);
+now+=3600000;meter.end('gpu');assert.equal(meter.snapshot().kWh,0.15,'idle and repeated finish cannot add energy');
+assert.throws(()=>energySettings({powerWatts:NaN}));assert.throws(()=>energySettings({electricityRate:-1}));
+console.log('PASS estimated electricity: kWh/cost formula, concurrent execution union, idle exclusion and input validation.');

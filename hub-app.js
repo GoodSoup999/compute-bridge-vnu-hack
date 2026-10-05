@@ -37,6 +37,7 @@ async function configure(input = {}) {
   const hw = await hardware; const gpu = hw.gpus.find(g => g.nvidia);
   const defaults = { name: hw.hostname, slots: Math.max(1, Math.min(2, hw.threads - 1)), cpuPercent: 50, gpuRender: false, ramGb: Math.max(1, Math.min(4, hw.ramGb - 2)), vramGb: 0, until: Date.now() + 3600000, price: 1 };
   const next = { ...defaults, ...input, cpu: hw.cpu, gpu: gpu?.name || '' };
+  Object.assign(next, require('./lib/energy').energySettings(next));
   const hours = Number(input.hours ?? 1);
   if (!Number.isFinite(hours) || hours < 1 || hours > 24) throw new Error('Alege un interval între 1 și 24 de ore');
   if (!Number.isInteger(Number(next.slots)) || next.slots < 0 || next.slots > Math.min(12, hw.threads)) throw new Error('Număr de fire CPU invalid');

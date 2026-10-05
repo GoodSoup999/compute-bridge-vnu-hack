@@ -65,6 +65,8 @@ O sarcină activă are o garanție de **10%**, minimum **0,01**, maximum **1 cre
 
 Gazda, aplicațiile furnizoare și mediul lor de execuție trebuie să rămână pornite. Clientul care doar trimite lucrări remote nu are nevoie de Docker. Ghidul separat explică instalarea, fișierele proprii și erorile uzuale, pas cu pas.
 
+**Electricitate estimată:** furnizorul poate introduce puterea medie a PC-ului în W și tariful în lei/kWh. Aplicația afișează energia și costul sesiunii din timpul cu sarcini în execuție, inclusiv pregătirea lor, fără dublare pentru sarcini simultane. Nu este măsurare la priză sau măsurarea consumului suplimentar; nu include timpul fără lucru și se resetează la o nouă pornire a agentului.
+
 ## Cifre pe care le putem susține
 
 - **8 opțiuni de lucru** în interfață; AI are exemple atât de predicție, cât și de antrenare.
