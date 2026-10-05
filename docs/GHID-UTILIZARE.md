@@ -72,9 +72,9 @@ Lasă aplicația, Docker dacă este necesar și PC-ul pornite. Nu este suficient
 
 Pe client, **din alt cont** decât proprietarul furnizorului:
 
-1. Descarcă și extrage [kitul de teste 0.7.0](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.0-beta.1), compatibil cu 0.7.1.
+1. Descarcă și extrage [kitul de teste pe lucrări](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-test-kit.1), compatibil cu 0.7.0 și 0.7.1.
 2. Alege PC-ul furnizor și **Python**.
-3. Deschide **Încarcă un pachet pregătit (.cbtask)**, alege `python.cbtask` și apasă **Încarcă pachetul**.
+3. Deschide **Încarcă un pachet pregătit (.cbtask)**, alege `Python/Program/python.cbtask` din kit și apasă **Încarcă pachetul**.
 4. Selectează pachetul, **Doar PC-uri remote**, buget **20 credite** și **Pornește lucrarea**.
 5. În **Lucrările mele**, așteaptă finalizarea și descarcă `statistics.json`: **count=10, sum=55, mean=5.5**.
 6. Verifică soldurile: furnizorul câștigă costul acceptat, clientul îl consumă, restul bugetului revine.

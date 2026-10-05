@@ -6,7 +6,7 @@
 
 Creat pentru **VNU Hack · Be The Middle Man**. Intermediem resursele, lucrările, fișierele și creditarea între oameni care au hardware disponibil și oameni care au nevoie de el.
 
-**[Descarcă aplicația 0.7.1](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-beta.1)** · **[Ghid de utilizare pentru jurați](docs/GHID-UTILIZARE.md)** · [Kit de teste](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.0-beta.1)
+**[Descarcă aplicația 0.7.1](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-beta.1)** · **[Ghid de utilizare pentru jurați](docs/GHID-UTILIZARE.md)** · [Kit de teste pe lucrări](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-test-kit.1)
 
 > Beta funcțională. Calculul și transferul creditelor sunt reale în aplicație. Cumpărarea și retragerea în bani sunt **simulări marcate DEMO**, fără încasări sau transferuri bancare.
 
