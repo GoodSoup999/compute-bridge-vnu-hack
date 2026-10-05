@@ -12,6 +12,7 @@ async function startAdmin(hub, infoFile) {
       const parts = []; let size = 0; for await (const p of req) { size += p.length; if (size > 4096) throw new Error('Cerere prea mare'); parts.push(p); }
       const b = JSON.parse(Buffer.concat(parts).toString());
       if (b.command === 'list') return reply(200, { users: hub.s.users.map(u => ({ id: u.id, email: u.email, credits: u.balance / 1000 })), devices: hub.s.devices.map(d => ({ id: d.id, name: d.name, ownerId: d.ownerId })) });
+      if (b.command === 'delete') return reply(200, require('./delete-account').deleteAccount(hub.store, b.email, b.confirm));
       hub.write(s => {
         if (b.command === 'credit') {
           const u = s.users.find(u => u.email === b.email); const n = Number(b.amount);

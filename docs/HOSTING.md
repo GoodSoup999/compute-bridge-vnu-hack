@@ -53,9 +53,12 @@ Administratorul poate consulta conturile sau adăuga credite de test, dintr-un a
 ```powershell
 npm run hub:admin -- list
 npm run hub:admin -- credit utilizator@example.com 100
+npm.cmd run hub:admin -- delete utilizator@example.com --confirm
 ```
 
 Administrarea folosește un port separat exclusiv localhost, cu o cheie locală. Nu distribui folderul `data`.
+
+Comanda `delete` șterge permanent contul, soldul, sesiunile, dispozitivele, proiectele și lucrările proprii, inclusiv fișierele lor. Celelalte conturi și solduri sunt păstrate. Ștergerea este refuzată dacă utilizatorul are lucrări active sau furnizează resurse unei lucrări active; finalizează sau anulează acele lucrări mai întâi. Rulează comanda pe PC-ul gazdă, din folderul surselor actualizate. După actualizarea codului, repornește serverul pentru noua comandă; tunelul temporar va avea o nouă adresă.
 
 Opțional, limitează înregistrările la participanții echipei înainte de pornire:
 
