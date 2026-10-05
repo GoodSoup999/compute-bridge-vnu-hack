@@ -75,13 +75,13 @@ O sarcină activă are o garanție de **10%**, minimum **0,01**, maximum **1 cre
 ## Pentru jurați: pornește și încearcă
 
 1. Descarcă arhiva desktop, extrage **întregul folder**, pornește `ComputeBridge.exe`. Nu cere Node sau browser separat.
-2. Verifică **Conectat la server** și creează un cont, cu parolă de minimum 12 caractere. Dacă gazda echipei nu este disponibilă, urmează [pornirea serverului](docs/GHID-UTILIZARE.md#1-pornește-serverul).
-3. **Pe furnizor:** instalează Blender pentru GPU sau pregătește Docker pentru video/cod. În **Oferă PC-ul meu**, alege intervalul și resursele, activează tipurile acceptate, apoi **Oferă PC-ul**. [Pregătirea completă](docs/GHID-UTILIZARE.md#3-pregătește-furnizorul).
-4. **Pe client, din alt cont:** alege furnizorul sau **Automat**, tipul lucrării, fișierele și bugetul. Pentru primul test folosește `python.cbtask` din kit, buget 20 credite și **Doar PC-uri remote**.
+2. Verifică **Conectat la server** și creează un cont, cu parolă de minimum 12 caractere. **Serverul echipei este deja pornit, iar două laptopuri furnizoare sunt pregătite pentru demo.**
+3. În **PC-uri disponibile**, alege un furnizor sau **Automat**. Pentru un prim test fără fișiere, selectează **Fractal · CPU**, 640 × 360, 1000 iterații, **Doar PC-uri remote**, buget 20 credite, apoi pornește lucrarea.
+4. Pentru un test cu fișiere, descarcă kitul, alege **Python**, încarcă și selectează `Python/Program/python.cbtask`, buget 20 credite și **Doar PC-uri remote**.
 5. În **Lucrările mele**, descarcă `statistics.json`: rezultatul așteptat este **`count=10`, `sum=55`, `mean=5.5`**. Verifică și creditele câștigate pe furnizor.
-6. În **Credite**, simulează o cumpărare de 500 credite, apoi o retragere. Pentru mai multe PC-uri simultan, oferă două GPU-uri și rulează Blender în **Automat**.
+6. În **Credite**, simulează o cumpărare de 500 credite, apoi o retragere. Pentru mai multe PC-uri simultan, folosește **Automat** la fractal/ray tracing sau încarcă o animație Blender compatibilă.
 
-Gazda, aplicațiile furnizoare și mediul lor de execuție trebuie să rămână pornite. Clientul care doar trimite lucrări remote nu are nevoie de Docker. Ghidul separat explică instalarea, fișierele proprii și erorile uzuale, pas cu pas.
+Echipa menține gazda și furnizorii porniți pe durata demo-ului. **Ca jurat care trimite lucrări remote, ai nevoie doar de aplicație și, pentru exemplele cu fișiere, de kitul de teste; nu trebuie să instalezi Node, Docker, WSL, Python sau Blender.** [Ghidul pentru jurați](docs/GHID-UTILIZARE.md) explică fiecare pas.
 
 **Electricitate estimată:** furnizorul poate introduce puterea medie a PC-ului în W și tariful în lei/kWh. Aplicația afișează energia și costul sesiunii din timpul cu sarcini în execuție, inclusiv pregătirea lor, fără dublare pentru sarcini simultane. Nu este măsurare la priză sau măsurarea consumului suplimentar; nu include timpul fără lucru și se resetează la o nouă pornire a agentului.
 

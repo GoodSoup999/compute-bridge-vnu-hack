@@ -1,104 +1,81 @@
-# Ghid de utilizare · Compute Bridge 0.7.1
+# Ghid pentru jurați · Compute Bridge 0.7.1
 
-**Configurație pentru demo:** un PC găzduiește serverul, unul sau două PC-uri oferă resurse, alt cont trimite lucrări. PC-urile pot fi pe rețele diferite. Același PC poate avea mai multe roluri.
+> [!IMPORTANT]
+> **Serverul este deja pornit de echipa noastră, iar două laptopuri furnizoare sunt pregătite pentru demo.** Descarci aplicația, intri în cont și trimiți lucrări către un PC disponibil. Ai nevoie de **Windows x64 și internet**; poți fi pe altă rețea.
 
-## 1. Pornește serverul
+> [!WARNING]
+> **Nu descărca aplicația de pe site-ul de prezentare: versiunea de acolo este învechită.** Folosește descărcările GitHub de mai jos.
 
-Pe gazdă, instalează Node.js 24+ și Cloudflare Tunnel:
+## 1. Descarcă și deschide aplicația
 
-```powershell
-winget install --id OpenJS.NodeJS.LTS --exact
-winget install --id Cloudflare.cloudflared --exact
-```
+1. Deschide [release-ul aplicației 0.7.1](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-beta.1).
+2. În **Assets**, descarcă **`ComputeBridge-0.7.1-desktop-windows-x64.zip`**. Nu alege `Source code`.
+3. Click dreapta pe ZIP → **Extract All / Extrage tot**. Păstrează toate fișierele împreună; nu muta numai executabilul și nu îl porni din arhivă.
+4. În folderul extras, deschide **`ComputeBridge.exe`**.
+5. Așteaptă **Conectat la server**. Adresa serverului echipei este deja inclusă în această descărcare.
 
-Redeschide terminalul; `node --version` trebuie să fie minimum 24. Descarcă sursele 0.7.1, extrage-le și intră în folderul cu `package.json`. Rulează:
+**Pentru lucrări remote, nu trebuie să instalezi Node.js, Docker, WSL, Python sau Blender. Nu trebuie să rulezi `Pregateste mediul.cmd` și nici să pornești un server.** Mediul de execuție este pregătit pe furnizori.
 
-```powershell
-npm.cmd run hub:public
-```
+## 2. Creează contul și găsește un PC
 
-Așteaptă `Registered tunnel connection`, apoi deschide `https://ADRESA-AFIȘATĂ/health`. Trebuie să vezi `"ok":true`; `features` trebuie să includă `economy-demo-v1` pentru cumpărare/retragere. Lasă terminalul și gazda pornite, fără sleep. Gazda nu are nevoie de Docker doar pentru server.
+1. Completează numele, emailul și o parolă de **minimum 12 caractere**, apoi apasă **Creează cont**. Pentru un cont existent pe acest server, folosește **Intră în cont**.
+2. Un cont nou primește **100 de credite de test**.
+3. În **PC-uri disponibile**, vezi ofertele laptopurilor noastre. Alege **Folosește acest PC** sau lasă **Automat · toate PC-urile compatibile**.
 
-**URL-ul Quick Tunnel se schimbă la repornire.** Nu există descoperire automată a noii adrese. Gazda și fiecare client trebuie configurate la aceeași adresă; pentru una permanentă este necesar alt deploy. Dacă tunelul nu se conectează și portul 7844 e blocat, încearcă altă rețea/hotspot pe gazdă. [Ghid hosting](HOSTING.md).
+Oferta trebuie să fie activă și compatibilă cu lucrarea. Dacă nu apare niciun PC, anunță echipa; noi verificăm furnizorii. Nu trebuie să activezi **Oferă PC-ul meu** pentru a testa lucrări remote.
 
-## 2. Conectează aplicațiile
+## 3. Primul test, fără fișiere: Fractal
 
-1. Din [release 0.7.1](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-beta.1), descarcă ZIP-ul **desktop**, nu ZIP-ul surselor.
-2. Extrage întregul folder. **Arhiva desktop 0.7.1 include adresa serverului echipei: pentru demo, jurații nu trebuie să editeze configurația.** Dacă pornești propria gazdă sau tunelul echipei își schimbă adresa, actualizează `resources/app/desktop/config.json`:
+1. La **Lucrare**, selectează **Fractal · CPU**.
+2. La PC folosit, alege **Automat · toate PC-urile compatibile**.
+3. La **Execuție**, alege **Doar PC-uri remote**.
+4. Buget: **20 credite**. Setări: **640 × 360**, **1000 iterații**.
+5. Apasă **Pornește lucrarea**.
+6. Deschide **Lucrările mele**: urmărește progresul și contribuțiile PC-urilor, apoi vizualizează sau descarcă imaginea finală.
 
-   ```json
-   {"hubUrl":"https://ADRESA-AFIȘATĂ.trycloudflare.com"}
-   ```
+Acest test poate împărți imaginea între cele două laptopuri. Bugetul se rezervă la pornire; plătești sarcinile acceptate, iar restul revine în sold la finalizare sau anulare.
 
-3. Pornește `ComputeBridge.exe`. Dacă era deja deschis, închide complet și redeschide. Nu muta numai executabilul; clientul nu cere Node separat.
-4. Când apare **Conectat la server**, creează contul: email și parolă de minimum 12 caractere. Primești 100 credite de test.
+## 4. Test cu fișiere: Python
 
-## 3. Pregătește furnizorul
+1. Deschide [release-ul kitului de teste](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-test-kit.1), descarcă **`ComputeBridge-0.7.1-test-kit.zip`** din **Assets** și extrage-l.
+2. În aplicație, selectează **Python** și un furnizor compatibil sau **Automat**.
+3. În **Încarcă un pachet pregătit (.cbtask)**, selectează **`Python/Program/python.cbtask`** din kit și apasă **Încarcă pachetul**.
+4. Selectează pachetul încărcat, **Doar PC-uri remote**, buget **20 credite**, apoi **Pornește lucrarea**.
+5. În **Lucrările mele**, așteaptă finalizarea și descarcă **`statistics.json`**. Rezultatul așteptat: **`count=10`, `sum=55`, `mean=5.5`**.
 
-### Pentru Blender GPU
+Fișierele din **Rezultate așteptate** sunt pentru comparație; nu le încărca drept intrări. Maximum trei proiecte/pachete per cont: șterge-le pe cele nefolosite înainte de alte teste.
 
-Instalează Blender compatibil cu proiectele trimise, un driver NVIDIA potrivit și redeschide Compute Bridge. Activează **Ofer și GPU-ul pentru Blender** și **Accept proiecte Blender încărcate de utilizatori**. Nu trebuie Docker pentru această randare.
+## 5. Încearcă și celelalte lucrări
 
-### Pentru video, Python, AI, compilare și simulări
+Pentru pachetele de mai jos, repeți pașii testului Python: alegi tipul corespunzător, încarci `.cbtask`, selectezi pachetul, **Doar PC-uri remote**, apoi pornești. Fiecare variantă are un **CITESTE-MA.md** și un folder **Rezultate așteptate**.
 
-În PowerShell **ca administrator**, instalează WSL și Docker:
+| Lucrare | Unde găsești exemplele în kit |
+| --- | --- |
+| Procesare video | `Procesare video` → `MP4` sau `WebM` |
+| Python | `Python` → `Program` |
+| AI · CPU | `AI · CPU` → `Predicție` sau `Antrenare` |
+| Compilare C/C++ | `Compilare C-C++` → variante pentru Windows sau Linux |
+| Simulări Python | `Simulări Python` → `Oscilator` |
+| Ray tracing · CPU | Fără pachet: alege motorul din aplicație, 640 × 360, 8 mostre |
+| Proiect Blender · GPU | Încarcă propriul `.blend`; vezi pașii de mai jos |
 
-```powershell
-winget install --id Microsoft.WSL --exact
-wsl --install --no-distribution
-winget install --id Docker.DockerDesktop --exact
-```
+**Propriile fișiere:** poți folosi **Încarcă fișierele tale direct** în loc de pachetele noastre. Selectează programul și datele, fișierul de pornire și argumentele ca listă JSON (`[]` dacă nu sunt necesare). Codul citește din `/inputs` și scrie rezultatele în `/outputs`; bibliotecile disponibile și limitele sunt descrise în [documentația lucrărilor](TEST-WORKLOADS.md).
 
-Repornește Windows dacă instalarea o cere. Deschide Docker Desktop, cu WSL 2 și containere **Linux**. Dintr-un terminal nou:
+**Blender:** pregătește camera și animația, folosește **File → External Data → Pack Resources**, salvează `.blend` fără compresie, apoi încarcă-l. Alege cadrele, rezoluția și mostrele, cu **Automat** și **Doar PC-uri remote**. Fiecare laptop compatibil preia următorul cadru disponibil. La final, vezi PNG-urile și redarea cu viteză ajustabilă. Kitul nu include un proiect `.blend`; poți folosi unul propriu compatibil sau cere echipei proiectul de demo. [Condiții Blender](PROJECTS.md).
 
-```powershell
-docker run --rm hello-world
-```
+**Mai multe PC-uri simultan:** Blender distribuie cadre; fractalul și ray tracing-ul distribuie bucăți de imagine. Pachetele video/Python/AI/compilare/simulare rulează pe un furnizor per pachet. RAM și VRAM nu se unesc.
 
-După verificarea reușită, deschide **Pregateste mediul.cmd** din pachetul aplicației. Așteaptă finalizarea; prima pregătire descarcă un mediu mare. Alternativa din surse este `npm.cmd run runtime:prepare`; nu trebuie folosite ambele. Runtime-ul 0.7.0 rămâne compatibil cu aplicația 0.7.1. Redeschide aplicația pentru detectare.
+## 6. Verifică economia demo
 
-### Activează oferta
+În **Credite**, simulează cumpărarea a **500 credite**: soldul crește, echivalentul demonstrativ fiind **5 EUR**. Simulează retragerea a **100 credite**: soldul scade. Verifică istoricul.
 
-În **Oferă PC-ul meu**, pentru primul demo:
+**Nu se încasează și nu se trimit bani; nu sunt necesare carduri sau IBAN.** Creditele rezervate în lucrări nu pot fi retrase. Transferul creditelor interne de la client către furnizor se face pentru sarcinile acceptate.
 
-- Interval: **1 oră**; fire CPU: **2**; ritm: **50%**.
-- RAM: **4 GB**; tarif: **1 credit/unitate**. Pentru Blender declară VRAM disponibilă.
-- Activează tipurile de lucru pentru care ai pregătit mediul.
-- Opțional, în **Estimare electricitate**, introdu puterea medie totală a PC-ului în W și tariful tău lei/kWh. Valorile inițiale 150 W și 1 leu/kWh sunt exemple; energia/costul apar în Starea PC-ului meu pentru sesiunea curentă, nu sunt măsurători la priză.
-- Apasă **Oferă PC-ul** și verifică apariția PC-ului în marketplace pe celălalt cont.
+## Dacă întâmpini o problemă
 
-Lasă aplicația, Docker dacă este necesar și PC-ul pornite. Nu este suficient doar să intri în cont. Nu primești credite dacă nu se execută sarcini acceptate. Pentru oprire normală, folosește **Termin lucrul și opresc oferta**. Oprirea imediată poate pierde garanția sarcinii active.
+- **Serverul nu răspunde:** verifică internetul, închide complet aplicația și redeschide-o. Dacă mesajul persistă, anunță echipa: serverul/tunelul sunt administrate de noi, iar adresa se poate schimba la repornire.
+- **Nu există PC compatibil:** încearcă Fractal pentru primul test sau cere echipei să verifice oferta și mediul pentru tipul ales.
+- **Email sau parolă incorecte:** folosește contul creat pe serverul demo actual; dacă nu reușești, cere ajutor echipei. Nu există recuperare automată a parolei în beta.
+- **Lucrarea eșuează:** deschide logurile lucrării și arată mesajul echipei. Pentru test, folosește pachetul `.cbtask` complet din kit.
 
-## 4. Prima lucrare: Python
-
-Pe client, **din alt cont** decât proprietarul furnizorului:
-
-1. Descarcă și extrage [kitul de teste pe lucrări](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-test-kit.1), compatibil cu 0.7.0 și 0.7.1.
-2. Alege PC-ul furnizor și **Python**.
-3. Deschide **Încarcă un pachet pregătit (.cbtask)**, alege `Python/Program/python.cbtask` din kit și apasă **Încarcă pachetul**.
-4. Selectează pachetul, **Doar PC-uri remote**, buget **20 credite** și **Pornește lucrarea**.
-5. În **Lucrările mele**, așteaptă finalizarea și descarcă `statistics.json`: **count=10, sum=55, mean=5.5**.
-6. Verifică soldurile: furnizorul câștigă costul acceptat, clientul îl consumă, restul bugetului revine.
-
-Clientul care trimite lucrarea remote nu are nevoie de Docker. [Celelalte exemple și rezultatele lor](TEST-WORKLOADS.md). Șterge pachetele nefolosite între teste: maximum trei proiecte/pachete per cont.
-
-## 5. Propriile fișiere și mai multe PC-uri
-
-**Video/cod:** în **Încarcă fișierele tale direct**, selectează împreună programul și datele, alege fișierul de pornire și argumentele ca listă JSON (`[]` dacă nu sunt necesare). Pentru video alegi rezoluția/formatul; pentru C/C++ ținta Windows/Linux. Încarcă și pornește. Programul citește din `/inputs`, scrie în `/outputs`; fără fișiere rezultate, lucrarea eșuează. Foldere complexe: [formatul `.cbtask`](TEST-WORKLOADS.md#pachetele-tale).
-
-**Blender:** setează camera/animația, folosește **File → External Data → Pack Resources**, salvează `.blend` fără compresie, încarcă-l și alege cadrele/rezoluția/mostrele. [Condiții Blender](PROJECTS.md).
-
-**Mai multe PC-uri simultan:** pornește două oferte GPU compatibile, selectează **Automat**, Blender și o animație cu mai multe cadre. Fiecare PC preia următorul cadru disponibil; cardul lucrării arată contribuțiile. Fractalul și ray tracing-ul se distribuie similar pe bucăți. Pachetele generale rulează pe un furnizor, iar RAM/VRAM nu se unesc.
-
-## 6. Economia demo
-
-În **Credite**, apasă **Simulează cumpărarea** pentru 500 credite: soldul crește cu 500, echivalent demo 5 EUR. Simulează retragerea a 100 credite: soldul scade cu 100. Verifică istoricul. **Nu se încasează și nu se trimit bani; nu sunt necesare carduri sau IBAN.** Creditele rezervate în lucrări nu sunt retragibile. Dacă butoanele sunt dezactivate, gazda trebuie actualizată la 0.7.1.
-
-## Dacă nu merge
-
-- **Serverul nu răspunde:** deschide `/health` pe PC-ul afectat, verifică linkul actual și configurația copiei de aplicație pe care o deschizi; repornește aplicația după modificare.
-- **Nu există furnizor:** verifică oferta, checkbox-ul tipului de lucru, memoria și mediul; folosește alt cont pe client.
-- **Docker nu răspunde:** pornește Docker Desktop, verifică motorul Linux / `hello-world`, repetă pregătirea, redeschide aplicația.
-- **Parola nu merge:** verifică pe gazdă `npm.cmd run hub:admin -- list`. O bază resetată sau alt folder de server înseamnă alte conturi; nu există recuperare automată a parolei.
-
-Pentru actualizare, oprește lucrările și gazda, păstrează folderul `data`, apoi actualizează sursele și aplicațiile. Pornirea din surse noi fără `data` produce o bază nouă. GitHub nu actualizează automat pachetele deja descărcate. [Administrare și backup](HOSTING.md).
+Instrucțiunile pentru găzduirea propriului server sau pregătirea unui PC furnizor sunt separate: [găzduire](HOSTING.md) · [mediu de execuție](TEST-WORKLOADS.md) · [Blender](PROJECTS.md). **Nu sunt necesare pentru testarea demo-ului ca utilizator.**
