@@ -42,6 +42,8 @@ Configurația se include în arhivă. Toate PC-urile care folosesc acel pachet c
 
 Nu șterge folderul `data`. Serverul păstrează conturile, soldurile și rezultatele. Configurațiile grupurilor vechi sunt eliminate; lucrările active ale acelor grupuri sunt anulate cu restituirea bugetului și fără penalizări. Bonusul de început se acordă o singură dată conturilor care nu l-au primit deja.
 
+Dacă ai descărcat proiectul ca ZIP, `git pull` nu funcționează în acel folder. Descarcă sursele versiunii 0.7, extrage-le într-un folder nou, oprește serverul vechi și copiază folderul `data` în noul proiect înainte de pornire. Păstrează și configurația ta `.env`/`HUB_DB`, dacă o folosești. Pornește serverul din noul folder; păstrează proiectul vechi ca backup.
+
 ## Credite și administrare
 
 Conturile noi primesc automat 100 de credite. PC-urile sunt disponibile automat după pornirea ofertei și confirmarea agentului; nu există pas de aprobare.

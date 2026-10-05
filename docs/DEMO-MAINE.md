@@ -10,6 +10,8 @@
 
 ## Ordine recomandată
 
+Dacă gazda folosește surse descărcate ca ZIP, actualizarea se face cu un ZIP nou și copierea folderului `data` cât serverul este oprit, conform [ghidului gazdei](HOSTING.md); `git pull` se folosește pentru un repository clonat.
+
 1. Arată furnizorul în marketplace. Cardul trebuie să spună că acceptă video, Python, AI CPU, compilare și simulări.
 2. Alege acel PC și trimite **python.cbtask**, buget 20. Descarcă `statistics.json`: suma trebuie să fie **55**.
 3. Arată tranzacțiile: cumpărătorul pierde exact cât primește furnizorul. Bugetul neconsumat revine în sold.
