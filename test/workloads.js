@@ -45,7 +45,11 @@ async function main() {
       agent = new RemoteAgent({ server:base,token:provider.token,config:{...config,workloads:true} }); await agent.start();
     } else await api(provider.token, 'agent/heartbeat', {});
     let spent=0;
-    for (const name of ['video','python','ai-inference','ai-training','compile','simulation']) {
+    if (!protocol) {
+      const script = `import json, os, socket\nfrom pathlib import Path\nr={'unprivileged':os.geteuid()==65534}\nfor key,target in [('readonly_inputs','/inputs/blocked'),('readonly_root','/blocked')]:\n try: Path(target).write_text('x'); r[key]=False\n except OSError: r[key]=True\ntry:\n s=socket.create_connection(('1.1.1.1',80),timeout=.5); s.close(); r['no_network']=False\nexcept OSError: r['no_network']=True\nPath('isolation.json').write_text(json.dumps(r))\n`;
+      fs.writeFileSync(path.join(kit,'isolation.cbtask'),JSON.stringify({version:1,kind:'python',entry:'probe.py',files:[{path:'probe.py',data:Buffer.from(script).toString('base64')}]}));
+    }
+    for (const name of ['video','python','ai-inference','ai-training','compile','simulation',...(!protocol?['isolation']:[])]) {
       const bytes=fs.readFileSync(path.join(kit,name+'.cbtask')); const bundle=validateBundle(bytes);
       const project=await upload(buyer.token,bytes);
       const created=await api(buyer.token,'jobs',{...params,mode:bundle.kind,projectId:project.id,providerId:provider.id});
@@ -73,6 +77,7 @@ async function main() {
         if(name==='ai-inference')assert.deepEqual(json('predictions.json'),[1,3,5,11]);
         if(name==='ai-training'){const model=json('trained-model.json');assert.ok(Math.abs(model.weight-2)<.01);assert.ok(Math.abs(model.bias-1)<.01);assert.ok(model.loss<.0001);assert.ok(files['weights.pt'].length>100);}
         if(name==='compile')assert.equal(files['program.exe'].subarray(0,2).toString(),'MZ');
+        if(name==='isolation')assert.deepEqual(json('isolation.json'),{unprivileged:true,readonly_inputs:true,readonly_root:true,no_network:true});
         if(name==='simulation'){const result=json('summary.json');assert.ok(Math.abs(result.position-Math.cos(10))<.002);assert.ok(Math.abs(result.energy-.5)<.001);assert.equal(files['trajectory.csv'].toString().trim().split(/\r?\n/).length,101);}
         if(name==='video'){
           assert.equal(files['converted.mp4'].subarray(4,8).toString(),'ftyp');
@@ -86,6 +91,21 @@ async function main() {
       await api(buyer.token,'projects/delete',{projectId:project.id});
       report.cases.push({name,passed:true,spent:job.spent/1000,files:Object.keys(files)});
       console.log('PASS '+(protocol?'protocol-only':'real Docker')+': '+name+' / result, owner-only download, exact payment');
+    }
+    if (!protocol) {
+      const script=Buffer.from("import time\nfrom pathlib import Path\nPath('started.txt').write_text('started')\ntime.sleep(120)\n");
+      const project=await upload(buyer.token,Buffer.from(JSON.stringify({version:1,kind:'python',entry:'wait.py',files:[{path:'wait.py',data:script.toString('base64')}]})));
+      const job=await api(buyer.token,'jobs',{...params,projectId:project.id,providerId:provider.id});
+      for(let i=0;i<100&&!agent.children.size;i++)await sleep(200);
+      assert.ok(agent.children.size,'container process must start before cancellation');
+      await api(buyer.token,'jobs/cancel',{jobId:job.id});
+      for(let i=0;i<100&&agent.active.size;i++)await sleep(200);
+      assert.equal(agent.active.size,0,'cancelled container must stop');
+      assert.equal((await command(['ps','-aq','--filter','name=cb-'])).trim(),'','no remaining task containers');
+      assert.equal((await api(buyer.token,'state')).user.credits,100-spent);
+      assert.equal((await api(seller.token,'state')).user.credits,100+spent);
+      await api(buyer.token,'projects/delete',{projectId:project.id});
+      report.cancellation={passed:true}; console.log('PASS real Docker: cancellation stops container and refunds budget');
     }
     fs.writeFileSync(path.join(resultDirectory,'report.json'),JSON.stringify(report,null,2));
   } finally { await agent?.stop(); await app.close(); }

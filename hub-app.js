@@ -65,7 +65,7 @@ const ui = http.createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'" });
       return res.end(readAsset('public/hub.html').toString().replace('APP_KEY', key).replace('APP_VERSION', require('./lib/version')));
     }
-    if (req.method === 'GET' && ['/hub.js', '/workload.js', '/workload-types.js', '/hub.css'].includes(req.url)) { res.writeHead(200, { 'content-type': req.url.endsWith('.js') ? 'text/javascript' : 'text/css' }); return res.end(readAsset('public' + req.url)); }
+    if (req.method === 'GET' && ['/hub.js', '/workload.js', '/workload-types.js', '/task-bundle.js', '/hub.css'].includes(req.url)) { res.writeHead(200, { 'content-type': req.url.endsWith('.js') ? 'text/javascript' : 'text/css' }); return res.end(readAsset('public' + req.url)); }
     if (serveShared(req, res)) return;
     if (req.headers['x-app-key'] !== key) return json(res, 403, { error: 'Acces local neautorizat' });
     if (req.url.startsWith('/local/project?') && req.method === 'PUT') {

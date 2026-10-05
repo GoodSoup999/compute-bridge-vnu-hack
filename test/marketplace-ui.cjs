@@ -18,7 +18,7 @@ async function main() {
     if (req.url === '/local/action') {
       job.status = 'cancelled'; job.reserved = 0; res.setHeader('content-type', 'application/json'); return res.end('{"ok":true}');
     }
-    const file = ({ '/': 'hub.html', '/hub.js': 'hub.js', '/workload.js': 'workload.js', '/workload-types.js': 'workload-types.js', '/hub.css': 'hub.css', '/ui.css': 'ui.css' })[req.url];
+    const file = ({ '/': 'hub.html', '/hub.js': 'hub.js', '/workload.js': 'workload.js', '/workload-types.js': 'workload-types.js', '/task-bundle.js':'task-bundle.js', '/hub.css': 'hub.css', '/ui.css': 'ui.css' })[req.url];
     if (!file) { res.writeHead(404); return res.end(); }
     res.setHeader('content-type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html');
     res.end(fs.readFileSync(path.join(__dirname, '../public', file)));
@@ -39,6 +39,23 @@ async function main() {
   assert.equal(await run("document.getElementById('startFrameLabel').hidden"), false);
   assert.equal(await run("document.querySelector('[name=frames]').min"), '1');
   assert.match(await run("document.getElementById('projectList').textContent"), /My animation.blend/);
+  state.state.projects.push({id:'python-bundle',name:'My script.cbtask',kind:'python',bytes:2000});
+  await run("document.getElementById('jobMode').value='python'; document.getElementById('jobMode').dispatchEvent(new Event('change')); refresh(true);");
+  assert.equal(await run("document.getElementById('bundleSettings').hidden"),false);
+  assert.equal(await run("document.getElementById('renderDetails').hidden"),true);
+  assert.equal(await run("document.querySelector('[name=width]').disabled"),true);
+  assert.equal(await run("document.querySelector('[name=execution] option[value=hybrid]').disabled"),true);
+  assert.match(await run("document.getElementById('bundle').textContent"),/My script.cbtask/);
+  assert.doesNotMatch(await run("document.getElementById('bundle').textContent"),/My animation/);
+  assert.match(await run("document.getElementById('requirements').textContent"),/2 GB RAM/);
+  const completed={...job,id:'workload-completed',mode:'python',status:'done',workload:true,done:1,total:1,outputs:{files:[{path:'statistics.json',bytes:36}],logs:'<script>alert(1)</script>'}};
+  state.state.jobs.push(completed); await run('refresh(true)');
+  assert.equal(await run("document.querySelectorAll('[data-file]').length"),1);
+  assert.equal(await run("document.querySelectorAll('[data-result]').length"),0);
+  assert.equal(await run("document.getElementById('jobs').querySelectorAll('script').length"),0);
+  const packed=JSON.parse(await run("(async()=>{const blob=await createTaskBundle([new File(['print(55)'],'main.py'),new File(['10'],'data.csv')],{kind:'python',entry:'main.py',args:['/inputs/data.csv']});return blob.text();})()"));
+  require('../lib/workload-bundle').validateBundle(Buffer.from(JSON.stringify(packed)));
+  assert.equal(packed.files.length,2);assert.equal(Buffer.from(packed.files[0].data,'base64').toString(),'print(55)');
   await run("tab('jobs'); const input=document.querySelector('.budgetForm input'); input.value='27'; input.focus();");
   job.done = 5;
   await run('refresh(true)');

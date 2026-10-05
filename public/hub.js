@@ -18,6 +18,7 @@ const empty = text => `<div class="empty">${esc(text)}</div>`;
 function conditional() {
   const mode = $('jobMode').value;
   const workload = !!ComputeTypes[mode];
+  if ($('taskVideoOptions')) { $('taskVideoOptions').hidden=mode!=='video'; $('taskCompileOptions').hidden=mode!=='compile'; }
   $('bundleSettings').hidden = !workload; $('renderDetails').hidden = workload;
   for (const input of $('renderDetails').querySelectorAll('input')) input.disabled = workload;
   const execution = $('jobForm').elements.execution;
@@ -120,15 +121,30 @@ $('force').onclick=()=>perform(()=>api('stop',{force:true}),'Oferta a fost oprit
 $('jobMode').onchange=()=>{conditional();if(current)render(current);};
 $('jobForm').addEventListener('input', conditional);
 $('project').onchange=conditional;
+const builder=document.createElement('details');
+builder.innerHTML=`<summary>Încarcă fișierele tale direct</summary><p class="hint">Selectează programul și datele lui împreună, apoi fișierul de pornire. Pentru video selectează videoclipul. Programele citesc din /inputs și scriu rezultatele în /outputs. Modulele și datele se încarcă cu numele lor; folderele complexe pot fi împachetate separat.</p><label>Fișiere de intrare<input id="taskFiles" type="file" multiple></label><label>Fișier de pornire<select id="taskEntry"></select></label><label>Parametri (listă JSON)<input id="taskArgs" value="[]" placeholder='["/inputs/data.csv"]'></label><div id="taskVideoOptions" hidden><div class="row"><label>Lățime video<input id="videoWidth" type="number" min="64" max="1920" step="2" value="640"></label><label>Înălțime video<input id="videoHeight" type="number" min="64" max="1080" step="2" value="360"></label><label>Format<select id="videoFormat"><option>mp4</option><option>webm</option></select></label></div></div><div id="taskCompileOptions" hidden><label>Executabil pentru<select id="compileTarget"><option value="windows">Windows x64</option><option value="linux">Linux x64</option></select></label></div><button id="uploadTaskFiles" type="button">Încarcă fișierele</button>`;
+$('bundleSettings').append(builder);
+$('taskFiles').onchange=()=>{ $('taskEntry').innerHTML=[...$('taskFiles').files].map(file=>`<option value="${esc(file.name)}">${esc(file.name)}</option>`).join(''); const entry=[...$('taskFiles').files].find(file=> $('jobMode').value==='compile'?/\.(c|cc|cpp)$/i.test(file.name):/\.py$/i.test(file.name)); if(entry)$('taskEntry').value=entry.name; };
+async function uploadBundleBlob(file,name,kind) {
+  const r=await fetch('/local/project?kind=bundle&name='+encodeURIComponent(name),{method:'PUT',headers:{'x-app-key':key,'content-type':'application/octet-stream'},body:file});
+  const p=await r.json();if(!r.ok)throw new Error(p.error);
+  $('jobMode').value=kind;
+  await refresh(true);$('bundle').value=p.id;conditional();$('bundleStatus').textContent='Pachet încărcat. Poți porni lucrarea.';
+}
+$('uploadTaskFiles').onclick=()=>perform(async()=>{
+  const mode=$('jobMode').value; if(!ComputeTypes[mode])throw new Error('Alege un tip de lucrare pentru fișiere');
+  let args;try{args=JSON.parse($('taskArgs').value);}catch{throw new Error('Parametri invalizi. Exemplu: ["/inputs/data.csv"]');}
+  const config=mode==='video'?{width:Number($('videoWidth').value),height:Number($('videoHeight').value),format:$('videoFormat').value}:mode==='compile'?{target:$('compileTarget').value}:{};
+  $('uploadTaskFiles').disabled=true;$('bundleStatus').textContent='Pregătesc și transfer fișierele…';
+  try { const blob=await createTaskBundle([...$('taskFiles').files],{kind:mode,entry:$('taskEntry').value,args,config}); await uploadBundleBlob(blob,$('taskEntry').value+'.cbtask',mode); }
+  finally{$('uploadTaskFiles').disabled=false;}
+},'Fișiere încărcate.');
 $('uploadBundle').onclick=()=>perform(async()=>{
   const file=$('bundleFile').files[0]; if(!file||!/\.cbtask$/i.test(file.name))throw new Error('Alege pachetul .cbtask');
   if(file.size>32*1048576)throw new Error('Maximum 32 MB per pachet');
   $('uploadBundle').disabled=true; $('bundleStatus').textContent='Transfer în curs…';
   try {
-    const r=await fetch('/local/project?kind=bundle&name='+encodeURIComponent(file.name),{method:'PUT',headers:{'x-app-key':key,'content-type':'application/octet-stream'},body:file});
-    const p=await r.json();if(!r.ok)throw new Error(p.error);
-    const metadata=JSON.parse(await file.text());$('jobMode').value=metadata.kind;
-    await refresh(true);$('bundle').value=p.id;conditional();$('bundleStatus').textContent='Pachet încărcat. Poți porni lucrarea.';
+    const metadata=JSON.parse(await file.text());await uploadBundleBlob(file,file.name,metadata.kind);
   } finally {$('uploadBundle').disabled=false;}
 },'Pachet încărcat.');
 $('uploadProject').onclick=()=>perform(async()=>{

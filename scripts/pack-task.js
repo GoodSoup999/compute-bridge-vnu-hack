@@ -3,6 +3,8 @@ const path = require('node:path');
 const { validateBundle } = require('../lib/workload-bundle');
 function pack(directory, destination) {
   const root = path.resolve(directory);
+  const output = path.resolve(destination);
+  if (output === root || output.startsWith(root + path.sep)) throw new Error('Salvează pachetul în afara folderului de intrare');
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'task.json')));
   const files = [];
   function walk(folder) {
