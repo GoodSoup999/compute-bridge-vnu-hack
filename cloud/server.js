@@ -4,6 +4,7 @@ const { promisify } = require('node:util');
 const { Worker } = require('node:worker_threads');
 const path = require('node:path');
 const { Hub, fail } = require('./service');
+const { validateOutput } = require('../lib/workload-bundle');
 const scrypt = promisify(crypto.scrypt);
 
 function json(res, status, data) { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }); res.end(JSON.stringify(data)); }
@@ -23,6 +24,7 @@ function sample(task) {
 async function validateResult(hub, did, body) {
   const { j, t } = hub.lease(did, body);
   if (t.status === 'done') return null;
+  if (j.workload) return Buffer.from(JSON.stringify(validateOutput(body.artifact)));
   if (j.mode === 'blender') {
     const bytes = Buffer.from(String(body.image || ''), 'base64');
     if (bytes.length < 100 || bytes.length > 8000000 || !bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) || bytes.readUInt32BE(16) !== j.width || bytes.readUInt32BE(20) !== j.height) fail('Cadru PNG invalid');
@@ -41,13 +43,14 @@ function createHubServer(options = {}) {
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://hub'); const route = url.pathname;
-      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 5, features: ['blender-projects-v1'] });
+      if (route === '/health' && req.method === 'GET') return json(res, 200, { ok: true, version: require('../lib/version'), protocol: 5, features: ['blender-projects-v1', 'workload-bundles-v1'] });
       if (!route.startsWith('/v1/')) return json(res, 404, { error: 'Negăsit' });
       if (route === '/v1/projects' && req.method === 'PUT') {
         const user = hub.authenticate(String(req.headers.authorization || '').replace(/^Bearer /, ''));
         const projects = require('./projects');
-        const bytes = await projects.readProject(req);
-        return json(res, 201, projects.upload(hub, user.id, url.searchParams.get('name'), bytes));
+        const kind = url.searchParams.get('kind') === 'bundle' ? 'bundle' : 'blender';
+        const bytes = await projects.readProject(req, kind);
+        return json(res, 201, projects.upload(hub, user.id, url.searchParams.get('name'), bytes, kind));
       }
       const body = req.method === 'POST' ? await readJson(req) : {};
       if (req.method === 'POST' && ['/v1/auth/register', '/v1/auth/login'].includes(route)) {
@@ -72,7 +75,7 @@ function createHubServer(options = {}) {
       if (route.startsWith('/v1/agent/')) {
         const d = hub.authenticate(token, true);
         if (route === '/v1/agent/heartbeat' && req.method === 'POST') return json(res, 200, hub.heartbeat(d.id));
-        if (route === '/v1/agent/task' && req.method === 'GET') return json(res, 200, hub.take(d.id, url.searchParams.get('kind') === 'gpu' ? 'gpu' : 'cpu'));
+        if (route === '/v1/agent/task' && req.method === 'GET') return json(res, 200, hub.take(d.id, ['gpu', 'workload'].includes(url.searchParams.get('kind')) ? url.searchParams.get('kind') : 'cpu'));
         const projectRoute = /^\/v1\/agent\/projects\/([a-f0-9-]+)$/.exec(route);
         if (projectRoute && req.method === 'GET') {
           const project = hub.agentProject(d.id, projectRoute[1]);
@@ -94,6 +97,11 @@ function createHubServer(options = {}) {
       if (route === '/v1/jobs/cancel' && req.method === 'POST') return json(res, 200, hub.cancel(user.id, body.jobId));
       if (route === '/v1/jobs/budget' && req.method === 'POST') return json(res, 200, hub.addBudget(user.id, body.jobId, body.amount));
       if (route === '/v1/projects/delete' && req.method === 'POST') return json(res, 200, require('./projects').remove(hub, user.id, body.projectId));
+      const artifact = /^\/v1\/jobs\/([a-f0-9-]+)\/file$/.exec(route);
+      if (artifact && req.method === 'GET') {
+        const bytes = hub.outputFile(user.id, artifact[1], url.searchParams.get('name'));
+        res.writeHead(200, { 'content-type': 'application/octet-stream', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }); return res.end(bytes);
+      }
       const image = /^\/v1\/jobs\/([a-f0-9-]+)\/image$/.exec(route);
       if (image && req.method === 'GET') { const bytes = hub.result(user.id, image[1], Number(url.searchParams.get('frame') || 0)); res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }); return res.end(bytes); }
       return json(res, 404, { error: 'Negăsit' });

@@ -18,7 +18,7 @@ async function main() {
     if (req.url === '/local/action') {
       job.status = 'cancelled'; job.reserved = 0; res.setHeader('content-type', 'application/json'); return res.end('{"ok":true}');
     }
-    const file = ({ '/': 'hub.html', '/hub.js': 'hub.js', '/workload.js': 'workload.js', '/hub.css': 'hub.css', '/ui.css': 'ui.css' })[req.url];
+    const file = ({ '/': 'hub.html', '/hub.js': 'hub.js', '/workload.js': 'workload.js', '/workload-types.js': 'workload-types.js', '/hub.css': 'hub.css', '/ui.css': 'ui.css' })[req.url];
     if (!file) { res.writeHead(404); return res.end(); }
     res.setHeader('content-type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html');
     res.end(fs.readFileSync(path.join(__dirname, '../public', file)));

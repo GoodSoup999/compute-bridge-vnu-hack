@@ -23,9 +23,11 @@ async function main() {
     for (const file of ['hub-app.js', 'app.js', 'server.js', 'provider.js']) {
       fs.copyFileSync(path.join(root, file), path.join(stage, file));
     }
-    for (const dir of ['lib', 'public', 'desktop']) {
+    for (const dir of ['lib', 'public', 'desktop', 'runtime']) {
       fs.cpSync(path.join(root, dir), path.join(stage, dir), { recursive: true, filter: source => !source.split(path.sep).includes('__pycache__') && !source.endsWith('.pyc') });
     }
+    fs.mkdirSync(path.join(stage, 'scripts'), { recursive: true });
+    fs.copyFileSync(path.join(root, 'scripts/prepare-runtime.js'), path.join(stage, 'scripts/prepare-runtime.js'));
     if (process.env.CB_HUB_URL) fs.writeFileSync(path.join(stage, 'desktop/config.json'), JSON.stringify({ hubUrl: require('../lib/remote-agent').hubUrl(process.env.CB_HUB_URL) }));
     fs.writeFileSync(path.join(stage, 'package.json'), JSON.stringify({
       name: 'compute-bridge-desktop',
@@ -52,12 +54,14 @@ async function main() {
       require('electron'),
       path.join(folders[0], 'ComputeBridge.exe')
     );
+    fs.writeFileSync(path.join(folders[0], 'Pregateste mediul.cmd'), '@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"%~dp0ComputeBridge.exe" "%~dp0resources\\app\\scripts\\prepare-runtime.js"\r\nif errorlevel 1 (echo Pregatirea a esuat.)\r\npause\r\n');
     fs.writeFileSync(path.join(folders[0], 'Citeste-ma.txt'),
       `Compute Bridge ${version} - aplicație desktop Windows\r\n\r\n` +
       'Dezarhivează întregul folder și pornește ComputeBridge.exe.\r\n' +
       'Păstrează toate fișierele lângă executabil, inclusiv resources.\r\n' +
       'Aplicația se deschide în propria fereastră; nu cere Node.js sau browser instalat.\r\n' +
       'Blender și o placă NVIDIA sunt necesare pentru randarea GPU.\r\n' +
+      'Pentru video, Python, AI CPU, compilare și simulări: instalează Docker Desktop, pornește-l, apoi deschide Pregateste mediul.cmd.\r\n' +
       'Serverul echipei este configurat automat. Creează un cont; primești 100 credite.\r\n' +
       'Oferă PC-ul pentru lucru sau folosește un PC disponibil în marketplace.\r\n' +
       'La închiderea aplicației se oprește agentul acestui PC.\r\n');

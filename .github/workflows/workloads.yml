@@ -1,0 +1,48 @@
+name: Verify workload adapters
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'runtime/**'
+      - 'lib/**'
+      - 'cloud/**'
+      - 'test/workloads.js'
+      - 'scripts/**'
+      - 'examples/**'
+      - 'public/workload*.js'
+      - '.github/workflows/workloads.yml'
+permissions:
+  contents: read
+jobs:
+  linux-workloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm run runtime:prepare
+      - run: npm run test:workloads
+      - uses: actions/upload-artifact@v4
+        with:
+          name: workload-results-and-test-kit
+          path: |
+            tmp/workload-results/
+            test-kit/
+  windows-executable:
+    needs: linux-workloads
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: workload-results-and-test-kit
+      - shell: pwsh
+        run: |
+          $program = Resolve-Path 'tmp/workload-results/compile/program.exe'
+          $output = & $program
+          if ($LASTEXITCODE -ne 0) { throw 'Compiled program failed' }
+          $result = $output | ConvertFrom-Json
+          if ($result.sum -ne 55) { throw 'Unexpected compiled program result' }
+          Write-Host 'PASS compiled Windows executable: sum=55'

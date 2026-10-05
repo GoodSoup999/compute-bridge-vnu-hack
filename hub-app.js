@@ -8,6 +8,7 @@ const { readAsset, serveShared } = require('./lib/assets');
 const { systemInfo } = require('./lib/system');
 const { RemoteAgent, hubUrl, request } = require('./lib/remote-agent');
 const { requirements } = require('./public/workload');
+const { types } = require('./public/workload-types');
 
 const key = crypto.randomBytes(24).toString('hex');
 const dir = process.env.CB_DATA_DIR || path.join(process.env.LOCALAPPDATA || os.homedir(), 'ComputeBridge');
@@ -42,6 +43,7 @@ async function configure(input = {}) {
   if (next.ramGb > Math.max(1, hw.ramGb - 1)) throw new Error('Lasă minimum 1 GB RAM pentru sistem');
   if (next.gpuRender && (hw.gpuRenderReason || next.vramGb > gpu.vramGb)) throw new Error(hw.gpuRenderReason || 'VRAM peste capacitatea GPU-ului');
   if (next.market && Number(next.slots) === 0 && !next.gpuRender) throw new Error('Oferă cel puțin un fir CPU sau activează GPU-ul');
+  if (next.workloads && (!hw.workloadRuntime?.ready || Number(next.slots) < 1)) throw new Error(hw.workloadRuntime?.reason || 'Oferă cel puțin un fir CPU pentru lucrările izolate');
   settings.identities ||= {}; settings.identities[account.id] ||= crypto.randomBytes(32).toString('hex'); save();
   const serverState = await call('state');
   if (!Number.isFinite(serverState.serverTimeMs)) throw new Error('Nu pot verifica ora serverului. Reîncearcă.');
@@ -63,7 +65,7 @@ const ui = http.createServer(async (req, res) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'none'" });
       return res.end(readAsset('public/hub.html').toString().replace('APP_KEY', key).replace('APP_VERSION', require('./lib/version')));
     }
-    if (req.method === 'GET' && ['/hub.js', '/workload.js', '/hub.css'].includes(req.url)) { res.writeHead(200, { 'content-type': req.url.endsWith('.js') ? 'text/javascript' : 'text/css' }); return res.end(readAsset('public' + req.url)); }
+    if (req.method === 'GET' && ['/hub.js', '/workload.js', '/workload-types.js', '/hub.css'].includes(req.url)) { res.writeHead(200, { 'content-type': req.url.endsWith('.js') ? 'text/javascript' : 'text/css' }); return res.end(readAsset('public' + req.url)); }
     if (serveShared(req, res)) return;
     if (req.headers['x-app-key'] !== key) return json(res, 403, { error: 'Acces local neautorizat' });
     if (req.url.startsWith('/local/project?') && req.method === 'PUT') {
@@ -71,10 +73,12 @@ const ui = http.createServer(async (req, res) => {
       if (busy) throw new Error('O operație este deja în curs'); busy = true;
       try {
         checkedAt = 0; await checkHub();
-        if (!hubStatus.features?.includes('blender-projects-v1')) throw new Error('Gazda trebuie actualizată la 0.6 pentru încărcarea proiectelor.');
-        const name = new URL(req.url, 'http://local').searchParams.get('name');
-        const bytes = await require('./lib/project-file').readProject(req);
-        const response = await fetch(server + '/v1/projects?name=' + encodeURIComponent(name || 'proiect.blend'), { method: 'PUT', headers: { authorization: 'Bearer ' + account.token, 'content-type': 'application/octet-stream' }, body: bytes, signal: AbortSignal.timeout(120000) });
+        const localUrl = new URL(req.url, 'http://local');
+        const kind = localUrl.searchParams.get('kind') === 'bundle' ? 'bundle' : 'blender';
+        if (!hubStatus.features?.includes(kind === 'bundle' ? 'workload-bundles-v1' : 'blender-projects-v1')) throw new Error('Gazda trebuie actualizată pentru acest tip de proiect.');
+        const name = localUrl.searchParams.get('name');
+        const bytes = await require('./lib/project-file').readProject(req, kind);
+        const response = await fetch(server + '/v1/projects?kind=' + kind + '&name=' + encodeURIComponent(name || 'proiect.blend'), { method: 'PUT', headers: { authorization: 'Bearer ' + account.token, 'content-type': 'application/octet-stream' }, body: bytes, signal: AbortSignal.timeout(120000) });
         const value = await response.json(); if (!response.ok) throw Object.assign(new Error(value.error), { status: response.status });
         return json(res, 201, value);
       } finally { busy = false; }
@@ -96,6 +100,13 @@ const ui = http.createServer(async (req, res) => {
       const r = await fetch(`${server}/v1/jobs/${jid}/image?frame=${frame}`, { headers: { authorization: 'Bearer ' + account.token }, signal: AbortSignal.timeout(30000) });
       if (!r.ok) return json(res, r.status, { error: 'Imagine indisponibilă' });
       res.writeHead(200, { 'content-type': 'image/png' }); return res.end(Buffer.from(await r.arrayBuffer()));
+    }
+    if (req.url.startsWith('/local/file?') && req.method === 'GET') {
+      if (!account) throw new Error('Autentifică-te');
+      const u = new URL(req.url, 'http://local');
+      const r = await fetch(server + '/v1/jobs/' + encodeURIComponent(u.searchParams.get('job')) + '/file?name=' + encodeURIComponent(u.searchParams.get('name')), { headers: { authorization: 'Bearer ' + account.token }, signal: AbortSignal.timeout(30000) });
+      if (!r.ok) return json(res, r.status, { error: 'Fișier indisponibil' });
+      res.writeHead(200, { 'content-type': 'application/octet-stream', 'cache-control': 'no-store' }); return res.end(Buffer.from(await r.arrayBuffer()));
     }
     if (req.method !== 'POST') return json(res, 404, { error: 'Negăsit' });
     const b = await body(req);
@@ -119,7 +130,7 @@ const ui = http.createServer(async (req, res) => {
       else if (req.url === '/local/stop') { if (b.force) await agent?.stop(true); else await agent?.drain(); }
       else if (req.url === '/local/job') {
         if (!account) throw new Error('Autentifică-te');
-        if (b.projectId && !hubStatus.features?.includes('blender-projects-v1')) throw new Error('Gazda trebuie actualizată la 0.6 pentru proiecte proprii');
+        if (b.projectId && !hubStatus.features?.includes(types[b.mode] ? 'workload-bundles-v1' : 'blender-projects-v1')) throw new Error('Gazda trebuie actualizată pentru acest tip de lucrare');
         if (b.execution === 'hybrid') {
           if (!agent?.running) await configure({ ...config, market: false, hours: 1 });
           await startAgent();
