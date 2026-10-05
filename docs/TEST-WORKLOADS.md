@@ -34,7 +34,7 @@ Prima pregătire descarcă un mediu de dimensiune mare și poate dura câteva mi
 
 ## Test manual din aplicație
 
-Descarcă și extrage arhiva test-kit. În **Lucrările mele**, alege tipul, încarcă `.cbtask`, selectează un furnizor compatibil și pornește cu buget 20 de credite. După finalizare descarcă fișierele de pe cardul lucrării.
+Descarcă și extrage arhiva test-kit. În **Lucrările mele**, alege tipul, deschide **Încarcă un pachet pregătit (.cbtask)** și încarcă exemplul, selectează un furnizor compatibil și pornește cu buget 20 de credite. După finalizare descarcă fișierele de pe cardul lucrării. Pentru propriile fișiere folosește formularul **Încarcă fișierele tale direct**.
 
 | Pachet | Ce se execută | Rezultatul de verificat |
 |---|---|---|

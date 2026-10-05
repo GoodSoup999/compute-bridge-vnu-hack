@@ -24,7 +24,7 @@ async function main() {
     res.end(fs.readFileSync(path.join(__dirname, '../public', file)));
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  window = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } });
+  window = new BrowserWindow({ width:1180,height:820,show: false, webPreferences: { offscreen:process.argv.includes('--screenshot'),sandbox: true, contextIsolation: true, nodeIntegration: false } });
   await window.loadURL('http://127.0.0.1:' + server.address().port);
   const run = code => window.webContents.executeJavaScript(code);
   for (let i = 0; i < 50 && !await run("!!document.querySelector('[data-cancel]')"); i++) await sleep(50);
@@ -57,6 +57,11 @@ async function main() {
   const packed=JSON.parse(await run("(async()=>{const blob=await createTaskBundle([new File(['print(55)'],'main.py'),new File(['10'],'data.csv')],{kind:'python',entry:'main.py',args:['/inputs/data.csv']});return blob.text();})()"));
   require('../lib/workload-bundle').validateBundle(Buffer.from(JSON.stringify(packed)));
   assert.equal(packed.files.length,2);assert.equal(Buffer.from(packed.files[0].data,'base64').toString(),'print(55)');
+  if(process.argv.includes('--screenshot')){
+    await run("tab('jobs'); document.getElementById('bundleSettings').querySelector('details').open=true; document.getElementById('jobForm').scrollIntoView();");
+    await sleep(500);
+    fs.mkdirSync(path.resolve(__dirname,'../tmp'),{recursive:true});fs.writeFileSync(path.resolve(__dirname,'../tmp/workload-ui.png'),(await window.webContents.capturePage()).toPNG());
+  }
   await run("tab('jobs'); const input=document.querySelector('.budgetForm input'); input.value='27'; input.focus();");
   job.done = 5;
   await run('refresh(true)');

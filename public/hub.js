@@ -124,7 +124,10 @@ $('jobForm').addEventListener('input', conditional);
 $('project').onchange=conditional;
 const builder=document.createElement('details');
 builder.innerHTML=`<summary>Încarcă fișierele tale direct</summary><p class="hint">Selectează programul și datele lui împreună, apoi fișierul de pornire. Pentru video selectează videoclipul. Programele citesc din /inputs și scriu rezultatele în /outputs. Modulele și datele se încarcă cu numele lor; folderele complexe pot fi împachetate separat.</p><label>Fișiere de intrare<input id="taskFiles" type="file" multiple></label><label>Fișier de pornire<select id="taskEntry"></select></label><label>Parametri (listă JSON)<input id="taskArgs" value="[]" placeholder='["/inputs/data.csv"]'></label><div id="taskVideoOptions" hidden><div class="row"><label>Lățime video<input id="videoWidth" type="number" min="64" max="1920" step="2" value="640"></label><label>Înălțime video<input id="videoHeight" type="number" min="64" max="1080" step="2" value="360"></label><label>Format<select id="videoFormat"><option>mp4</option><option>webm</option></select></label></div></div><div id="taskCompileOptions" hidden><label>Executabil pentru<select id="compileTarget"><option value="windows">Windows x64</option><option value="linux">Linux x64</option></select></label></div><button id="uploadTaskFiles" type="button">Încarcă fișierele</button>`;
-$('bundleSettings').append(builder);
+builder.open=true;
+const packedDetails=document.createElement('details');packedDetails.innerHTML='<summary>Încarcă un pachet pregătit (.cbtask)</summary>';
+packedDetails.append($('bundleFile').closest('label'),$('uploadBundle'),$('bundleStatus').nextElementSibling);
+$('bundleSettings').append(builder,packedDetails,$('bundleStatus'));
 $('taskFiles').onchange=()=>{ $('taskEntry').innerHTML=[...$('taskFiles').files].map(file=>`<option value="${esc(file.name)}">${esc(file.name)}</option>`).join(''); const entry=[...$('taskFiles').files].find(file=> $('jobMode').value==='compile'?/\.(c|cc|cpp)$/i.test(file.name):/\.py$/i.test(file.name)); if(entry)$('taskEntry').value=entry.name; };
 async function uploadBundleBlob(file,name,kind) {
   const r=await fetch('/local/project?kind=bundle&name='+encodeURIComponent(name),{method:'PUT',headers:{'x-app-key':key,'content-type':'application/octet-stream'},body:file});
