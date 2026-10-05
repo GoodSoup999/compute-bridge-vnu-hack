@@ -18,8 +18,9 @@ if kind in ('python', 'ai', 'simulation'):
     command = ['python', '-u', entry, *args]
 elif kind == 'compile':
     windows = config.get('target', 'windows') == 'windows'
-    compiler = 'x86_64-w64-mingw32-g++' if windows else 'g++'
-    command = [compiler, '-O2', '-std=c++17', entry, '-I', '/inputs', '-static', '-o', '/outputs/program.exe' if windows else '/outputs/program-linux']
+    is_c = bundle['entry'].lower().endswith('.c')
+    compiler = ('x86_64-w64-mingw32-' if windows else '') + ('gcc' if is_c else 'g++')
+    command = [compiler, '-O2', '-std=c11' if is_c else '-std=c++17', entry, '-I', '/inputs', '-static', '-o', '/outputs/program.exe' if windows else '/outputs/program-linux']
 elif kind == 'video':
     fmt = config.get('format', 'mp4')
     command = ['ffmpeg', '-nostdin', '-hide_banner', '-loglevel', 'warning', '-protocol_whitelist', 'file,pipe', '-i', entry,
