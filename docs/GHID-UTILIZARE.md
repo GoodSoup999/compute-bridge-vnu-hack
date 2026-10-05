@@ -24,7 +24,7 @@ Așteaptă `Registered tunnel connection`, apoi deschide `https://ADRESA-AFIȘAT
 ## 2. Conectează aplicațiile
 
 1. Din [release 0.7.1](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-beta.1), descarcă ZIP-ul **desktop**, nu ZIP-ul surselor.
-2. Extrage întregul folder. În `resources/app/desktop/config.json`, setează:
+2. Extrage întregul folder. **Arhiva desktop 0.7.1 include adresa serverului echipei: pentru demo, jurații nu trebuie să editeze configurația.** Dacă pornești propria gazdă sau tunelul echipei își schimbă adresa, actualizează `resources/app/desktop/config.json`:
 
    ```json
    {"hubUrl":"https://ADRESA-AFIȘATĂ.trycloudflare.com"}
