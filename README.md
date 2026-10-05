@@ -4,6 +4,11 @@
 
 **Site-ul proiectului: [node-compute.vercel.app](https://node-compute.vercel.app/)**
 
+> [!WARNING]
+> **NU DESCĂRCAȚI APLICAȚIA DE PE SITE — versiunea oferită acolo este învechită (0.7.0).** Descărcați versiunea actuală **0.7.1 doar din [GitHub Releases](https://github.com/GoodSoup999/compute-bridge-vnu-hack/releases/tag/v0.7.1-beta.1)**.
+>
+> Site-ul este pentru prezentarea proiectului și consultarea manualului, ca să înțelegeți aplicația. Pentru instrucțiunile actualizate de instalare și utilizare, urmați [ghidul pentru jurați din acest repository](docs/GHID-UTILIZARE.md).
+
 **Compute Bridge transformă PC-urile personale disponibile într-un marketplace de calcul.** Dintr-o aplicație Windows, îți oferi resursele pentru un interval ales sau trimiți propriile fișiere către PC-uri compatibile. Primești rezultate, urmărești progresul și plătești în credite; furnizorul câștigă acele credite pentru sarcinile acceptate.
 
 Creat pentru **VNU Hack · Be The Middle Man**. Intermediem resursele, lucrările, fișierele și creditarea între oameni care au hardware disponibil și oameni care au nevoie de el.
